@@ -9,6 +9,7 @@ from openskills.models import (
     EvidenceRequirements,
     FinalizationRules,
     PlanStep,
+    ReferencedContent,
     SkillContract,
 )
 
@@ -75,7 +76,7 @@ class TestSkillContract:
             name="test-skill",
             description="A test skill.",
         )
-        assert contract.allowed_tools is None
+        assert contract.tool_ids is None
         assert contract.plan_steps == []
         assert contract.required_evidence == []
         assert contract.finalization.require_all_evidence is True
@@ -87,7 +88,7 @@ class TestSkillContract:
             description="Full featured.",
             triggers=["test"],
             constraints=Constraints(
-                allowed_tools=["tool_a", "tool_b"],
+                tool_ids=["tool_a", "tool_b"],
                 plan=[PlanStep(tool="tool_a", description="Step 1")],
                 evidence=EvidenceRequirements(
                     required=[EvidenceItem(id="data_ok", description="Data present")]
@@ -96,7 +97,7 @@ class TestSkillContract:
                 tool_overrides={"old_tool": "tool_a"},
             ),
         )
-        assert contract.allowed_tools == {"tool_a", "tool_b"}
+        assert contract.tool_ids == {"tool_a", "tool_b"}
         assert len(contract.plan_steps) == 1
         assert len(contract.required_evidence) == 1
         assert contract.finalization.min_iterations == 2
@@ -108,7 +109,7 @@ class TestSkillContract:
             openskills="1.0",
             name="gated",
             description="Tool gated.",
-            constraints=Constraints(allowed_tools=["run_query"]),
+            constraints=Constraints(tool_ids=["run_query"]),
         )
         assert contract.is_tool_allowed("run_query") is True
         assert contract.is_tool_allowed("forbidden_tool") is False
@@ -127,11 +128,35 @@ class TestSkillContract:
             name="override",
             description="With override.",
             constraints=Constraints(
-                allowed_tools=["run_query"],
+                tool_ids=["run_query"],
                 tool_overrides={"legacy_search": "run_query"},
             ),
         )
         assert contract.is_tool_allowed("legacy_search") is True
+
+    def test_referenced_content_property(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="with-refs",
+            description="Has referenced content.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries", path="./queries", content="SELECT 1"),
+                    ReferencedContent(name="linux", required=True),
+                ]
+            ),
+        )
+        assert len(contract.referenced_content) == 2
+        assert contract.referenced_content[0].name == "queries"
+        assert contract.referenced_content[1].required is True
+
+    def test_referenced_content_empty_by_default(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="no-refs",
+            description="No refs.",
+        )
+        assert contract.referenced_content == []
 
     def test_wrong_spec_version(self) -> None:
         with pytest.raises(ValidationError):

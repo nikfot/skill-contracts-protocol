@@ -23,7 +23,7 @@ def _full_contract() -> SkillContract:
         description="Investigate service latency spikes.",
         triggers=["latency", "p99"],
         constraints=Constraints(
-            allowed_tools=["platform.core.execute_esql", "platform.core.search"],
+            tool_ids=["platform.core.execute_esql", "platform.core.search"],
             plan=[
                 PlanStep(
                     tool="platform.core.execute_esql",
@@ -119,7 +119,7 @@ class TestFromElasticPayload:
         assert contract.name == "my-log-triage"
         assert contract.description == "Triage log errors."
         assert contract.content == "## Steps\n\n1. Query errors"
-        assert contract.allowed_tools == {
+        assert contract.tool_ids == {
             "platform.core.execute_esql",
             "platform.core.generate_esql",
         }
@@ -131,7 +131,7 @@ class TestFromElasticPayload:
             "description": "No tools.",
         })
         assert contract.constraints is None
-        assert contract.allowed_tools is None
+        assert contract.tool_ids is None
 
     def test_empty_tool_ids(self) -> None:
         contract = from_elastic_payload({
@@ -165,7 +165,7 @@ class TestRoundTrip:
         restored = from_elastic_payload(payload)
 
         assert restored.name == original.name
-        assert restored.allowed_tools == original.allowed_tools
+        assert restored.tool_ids == original.tool_ids
         assert original.content in restored.content
 
 
@@ -199,5 +199,5 @@ class TestCursorToKibanaSmoke:
         restored = from_elastic_payload(payload)
 
         assert restored.name == contract.name
-        assert restored.allowed_tools == contract.allowed_tools
+        assert restored.tool_ids == contract.tool_ids
         assert contract.content in restored.content

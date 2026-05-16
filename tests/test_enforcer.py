@@ -19,7 +19,7 @@ def _make_contract(**kwargs: object) -> SkillContract:
 class TestCheckToolCall:
     def test_allowed_tool(self) -> None:
         contract = _make_contract(
-            constraints=Constraints(allowed_tools=["query", "report"])
+            constraints=Constraints(tool_ids=["query", "report"])
         )
         enforcer = SkillEnforcer(contract)
         result = enforcer.check_tool_call("query", {"q": "hello"})
@@ -28,17 +28,17 @@ class TestCheckToolCall:
 
     def test_blocked_tool(self) -> None:
         contract = _make_contract(
-            constraints=Constraints(allowed_tools=["query"])
+            constraints=Constraints(tool_ids=["query"])
         )
         enforcer = SkillEnforcer(contract)
         result = enforcer.check_tool_call("forbidden", {})
         assert result.blocked
-        assert "not in allowed_tools" in (result.block_reason or "")
+        assert "not in tool_ids" in (result.block_reason or "")
 
     def test_rewrite_via_override(self) -> None:
         contract = _make_contract(
             constraints=Constraints(
-                allowed_tools=["run_query"],
+                tool_ids=["run_query"],
                 tool_overrides={"search": "run_query"},
             )
         )

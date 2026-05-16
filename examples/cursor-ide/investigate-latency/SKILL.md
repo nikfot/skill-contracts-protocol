@@ -5,7 +5,7 @@ description: Investigate service latency spikes using structured evidence collec
 tools: [Bash, Read]
 triggers: [latency, slo burn, p99, high response time]
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - read_knowledge
     - generate_report

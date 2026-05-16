@@ -44,14 +44,37 @@ class FinalizationRules(BaseModel):
     min_iterations: int = Field(default=0, ge=0)
 
 
+class ReferencedContent(BaseModel):
+    """A named supplementary content block the agent can consult selectively."""
+
+    name: str = Field(min_length=1)
+    path: str = Field(default="", description="Relative path hint (e.g. ``./queries``).")
+    content: str = Field(default="", description="Inline Markdown content.")
+    required: bool = Field(default=False, description="If true, the agent must consult this block before finalizing.")
+
+
 class Constraints(BaseModel):
     """The enforcement contract for a skill."""
 
-    allowed_tools: list[str] | None = None
+    tool_ids: list[str] | None = None
     plan: list[PlanStep] | None = None
     evidence: EvidenceRequirements | None = None
     finalization: FinalizationRules | None = None
     tool_overrides: dict[str, str] | None = None
+    referenced_content: list[ReferencedContent] | None = None
+
+
+class Activation(BaseModel):
+    """How the skill should be invoked by an orchestrator or UI."""
+
+    triggers: list[str] | None = Field(None, description="Keyword list for automatic selection.")
+    slash_command: str | None = Field(None, description="Explicit invocation name (e.g. ``/investigate``).")
+    attachment_types: list[str] | None = Field(
+        None, description="Data-driven activation by attachment type (e.g. ``alert``, ``case``)."
+    )
+    auto_discover: bool = Field(
+        default=True, description="Whether the orchestrator may select this skill automatically."
+    )
 
 
 class SkillContract(BaseModel):
@@ -61,14 +84,28 @@ class SkillContract(BaseModel):
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     triggers: list[str] | None = None
+    activation: Activation | None = None
     constraints: Constraints | None = None
     content: str = Field(default="", description="Markdown body after frontmatter.")
 
     @property
-    def allowed_tools(self) -> set[str] | None:
+    def effective_triggers(self) -> list[str]:
+        """Merged trigger list from both top-level ``triggers`` and ``activation.triggers``."""
+        top = self.triggers or []
+        act = (self.activation.triggers or []) if self.activation else []
+        seen: set[str] = set()
+        merged: list[str] = []
+        for t in top + act:
+            if t not in seen:
+                merged.append(t)
+                seen.add(t)
+        return merged
+
+    @property
+    def tool_ids(self) -> set[str] | None:
         """Tool whitelist, or None if unconstrained."""
-        if self.constraints and self.constraints.allowed_tools is not None:
-            return set(self.constraints.allowed_tools)
+        if self.constraints and self.constraints.tool_ids is not None:
+            return set(self.constraints.tool_ids)
         return None
 
     @property
@@ -99,14 +136,21 @@ class SkillContract(BaseModel):
             return self.constraints.tool_overrides
         return {}
 
+    @property
+    def referenced_content(self) -> list[ReferencedContent]:
+        """Referenced content blocks, empty if none defined."""
+        if self.constraints and self.constraints.referenced_content:
+            return self.constraints.referenced_content
+        return []
+
     def resolve_tool(self, name: str) -> str:
         """Resolve a tool name through overrides."""
         return self.tool_overrides.get(name, name)
 
     def is_tool_allowed(self, name: str) -> bool:
         """Check if a tool is permitted by the contract."""
-        allowed = self.allowed_tools
-        if allowed is None:
+        tools = self.tool_ids
+        if tools is None:
             return True
         resolved = self.resolve_tool(name)
-        return resolved in allowed or name in allowed
+        return resolved in tools or name in tools

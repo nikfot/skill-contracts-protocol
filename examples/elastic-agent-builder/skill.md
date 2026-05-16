@@ -4,7 +4,7 @@ name: investigate-log-errors
 description: Triage application log errors by severity, affected service, and host. Use when a user asks to investigate or summarize log errors.
 triggers: [log errors, error triage, application failures]
 constraints:
-  allowed_tools:
+  tool_ids:
     - platform.core.execute_esql
     - platform.core.generate_esql
     - platform.core.list_indices

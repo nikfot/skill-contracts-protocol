@@ -49,7 +49,7 @@ class TestCLIValidate:
                 "name: ref-test\n"
                 "description: Ref integrity test\n"
                 "constraints:\n"
-                "  allowed_tools:\n"
+                "  tool_ids:\n"
                 "    - tool_a\n"
                 "  plan:\n"
                 "    - tool: tool_b\n"
