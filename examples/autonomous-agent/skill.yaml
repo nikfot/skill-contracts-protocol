@@ -1,0 +1,86 @@
+---
+scp: "1.0"
+name: investigate-host-health
+description: >-
+  Diagnose an unhealthy host alert end-to-end. Use when a monitoring system
+  fires for host health degradation, node pressure, or pod eviction.
+activation:
+  triggers: [unhealthy host, node not ready, host alert, pod eviction]
+constraints:
+  tool_ids:
+    - query_elasticsearch
+    - get_node_metrics
+    - check_pod_status
+    - get_system_logs
+  plan:
+    - tool: query_elasticsearch
+      description: Fetch recent node-level metrics (CPU, memory, disk) for the affected host
+      args_template:
+        index: "metricbeat-*"
+        query: "host.name: '{{hostname}}' AND @timestamp >= '{{start_time}}'"
+    - tool: check_pod_status
+      description: List all pods on the node and their current phase
+      args_template:
+        node: "{{hostname}}"
+    - tool: get_system_logs
+      description: Retrieve kernel and system logs from the host for the incident window
+      args_template:
+        host: "{{hostname}}"
+        since: "{{start_time}}"
+        log_types: [kern, syslog, dmesg]
+    - tool: query_elasticsearch
+      description: Cross-correlate node resource pressure with pod restart events
+      args_template:
+        index: "logs-*"
+        query: "kubernetes.node.name: '{{hostname}}' AND event.reason: (OOMKilled OR Evicted OR BackOff)"
+  evidence:
+    required:
+      - id: node_resource_usage
+        description: CPU, memory, and disk utilization numbers for the affected node
+      - id: pod_health_summary
+        description: Status of all pods on the node with restart counts
+      - id: system_log_review
+        description: Kernel/system logs checked for OOM kills, disk errors, or hardware faults
+      - id: root_cause_hypothesis
+        description: At least one actionable hypothesis explaining the health degradation
+  finalization:
+    require_all_evidence: true
+    min_iterations: 2
+---
+
+# Investigate Host Health
+
+## Context
+
+This skill is designed for autonomous agents that run without human supervision.
+The agent receives an alert (e.g. from PagerDuty, Prometheus, or Elastic Alerting),
+invokes this skill, and must produce a complete diagnostic report before it can
+declare the investigation done.
+
+## Investigation Process
+
+### 1. Gather node metrics
+Query Elasticsearch for CPU, memory, and disk usage on the affected host.
+Look for sustained pressure (>85% for 5+ minutes) rather than transient spikes.
+
+### 2. Check pod health
+List all pods on the node. Flag any in CrashLoopBackOff, Evicted, or with
+high restart counts (>3 in the last hour).
+
+### 3. Review system logs
+Check for kernel OOM kills, disk I/O errors, NIC link flaps, or hardware
+fault messages. These often explain why Kubernetes marks the node NotReady.
+
+### 4. Correlate and hypothesize
+Cross-reference the timeline: did resource pressure precede pod failures?
+Did a specific workload trigger the pressure? Formulate at least one
+actionable hypothesis.
+
+## Output Format
+
+The final report should include:
+- **Affected node**: hostname, role, age
+- **Resource timeline**: when pressure started, peak values
+- **Pod impact**: which workloads were affected
+- **Root cause hypothesis**: what likely caused the degradation
+- **Recommended action**: restart, drain, scale, or investigate further
