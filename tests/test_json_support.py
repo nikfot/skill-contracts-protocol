@@ -27,11 +27,11 @@ class TestLoadSkillFromJson:
             "name": "constrained-json",
             "description": "Constraints in JSON.",
             "constraints": {
-                "allowed_tools": ["tool_a"],
+                "tool_ids": ["tool_a"],
             },
         })
         contract = load_skill_from_json(text)
-        assert contract.allowed_tools == {"tool_a"}
+        assert contract.tool_ids == {"tool_a"}
 
 
 class TestLoadSkillJsonFile:

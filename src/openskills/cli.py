@@ -10,7 +10,7 @@ import click
 import frontmatter
 import yaml
 
-from .loader import load_skill, load_skill_from_string
+from .loader import load_skill
 from .schema import validate_against_schema
 from .validator import validate_contract
 
