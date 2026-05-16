@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert a Cursor IDE SKILL.md into an Elastic Agent Builder skill payload.
 
-Demonstrates taking an OpenSkills-enhanced Cursor skill and producing the
+Demonstrates taking an SCP-enhanced Cursor skill and producing the
 JSON payload needed to deploy it as a Kibana Agent Builder skill.
 
 Usage:
@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from openskills import load_skill
-from openskills.adapters.elastic import to_elastic_payload
+from scp import load_skill
+from scp.adapters.elastic import to_elastic_payload
 
 
 def main() -> None:

@@ -1,5 +1,5 @@
 ---
-openskills: "1.0"
+scp: "1.0"
 name: check-service-health
 description: Quick service health check using allowed tools and evidence gates only.
 activation:

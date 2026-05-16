@@ -1,4 +1,4 @@
-"""Pydantic models for OpenSkills v1.0 skill contracts."""
+"""Pydantic models for SCP v1.0 (Skill Contracts Protocol) skill contracts."""
 
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ class Activation(BaseModel):
 
 
 class SkillContract(BaseModel):
-    """A fully parsed OpenSkills v1.0 skill contract.
+    """A fully parsed SCP v1.0 skill contract.
 
     Activation semantics (exclusive model):
     - No ``activation`` block: the skill is always discoverable and can be
@@ -89,7 +89,7 @@ class SkillContract(BaseModel):
       it outside those explicit routes.
     """
 
-    openskills: str = Field(pattern=r"^1\.0$")
+    scp: str = Field(pattern=r"^1\.0$")
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     activation: Activation | None = None

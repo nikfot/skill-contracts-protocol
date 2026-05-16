@@ -4,14 +4,14 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openskills.cli import main
-from openskills.elastic_compat import validate_elastic_compatibility
-from openskills.models import Constraints, SkillContract
+from scp.cli import main
+from scp.elastic_compat import validate_elastic_compatibility
+from scp.models import Constraints, SkillContract
 
 
 def _make_contract(**kwargs: object) -> SkillContract:
     defaults: dict[str, object] = {
-        "openskills": "1.0",
+        "scp": "1.0",
         "name": "test-skill",
         "description": "Test skill. Use when testing.",
     }
@@ -76,7 +76,7 @@ class TestCLIElasticCheck:
         with runner.isolated_filesystem():
             Path("good.yaml").write_text(
                 "---\n"
-                "openskills: '1.0'\n"
+                "scp: '1.0'\n"
                 "name: good-skill\n"
                 "description: A good skill. Use when testing.\n"
                 "---\n"
@@ -90,7 +90,7 @@ class TestCLIElasticCheck:
         with runner.isolated_filesystem():
             Path("bad.yaml").write_text(
                 "---\n"
-                "openskills: '1.0'\n"
+                "scp: '1.0'\n"
                 "name: bad-skill\n"
                 "description: No routing clause.\n"
                 "---\n"
@@ -104,7 +104,7 @@ class TestCLIElasticCheck:
         with runner.isolated_filesystem():
             Path("multi.yaml").write_text(
                 "---\n"
-                "openskills: '1.0'\n"
+                "scp: '1.0'\n"
                 f"name: {'a' * 70}\n"
                 "description: No clause.\n"
                 "---\n"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Example: OpenSkills-enforced agent loop.
+"""Example: SCP-enforced agent loop.
 
 Demonstrates the full lifecycle:
   1. Load a skill contract from a YAML file
@@ -17,9 +17,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from openskills import load_skill
-from openskills.adapters.prompt import build_system_prompt
-from openskills.runtime import EvidenceTracker, PlanExecutor, SkillEnforcer
+from scp import load_skill
+from scp.adapters.prompt import build_system_prompt
+from scp.runtime import EvidenceTracker, PlanExecutor, SkillEnforcer
 
 
 def simulate_tool_call(tool: str, args: dict[str, Any]) -> dict[str, Any]:

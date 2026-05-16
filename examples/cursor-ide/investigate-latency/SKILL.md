@@ -1,5 +1,5 @@
 ---
-openskills: "1.0"
+scp: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes using structured evidence collection.
 tools: [Bash, Read]

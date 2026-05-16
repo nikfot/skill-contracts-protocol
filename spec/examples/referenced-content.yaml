@@ -1,5 +1,5 @@
 ---
-openskills: "1.0"
+scp: "1.0"
 name: log-triage-with-refs
 description: Triage log errors with example queries and OS-specific guidance.
 constraints:

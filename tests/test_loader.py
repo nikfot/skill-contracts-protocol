@@ -1,11 +1,11 @@
-"""Tests for openskills.loader."""
+"""Tests for scp.loader."""
 
 from pathlib import Path
 
 import pytest
 
-from openskills.loader import load_skill, load_skill_from_dict, load_skill_from_string
-from openskills.models import SkillContract
+from scp.loader import load_skill, load_skill_from_dict, load_skill_from_string
+from scp.models import SkillContract
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "spec" / "examples"
 
@@ -14,7 +14,7 @@ class TestLoadSkillFromString:
     def test_full_frontmatter(self) -> None:
         text = """\
 ---
-openskills: "1.0"
+scp: "1.0"
 name: test-skill
 description: A test skill.
 constraints:
@@ -39,7 +39,7 @@ Body content here.
     def test_no_constraints(self) -> None:
         text = """\
 ---
-openskills: "1.0"
+scp: "1.0"
 name: simple
 description: No constraints.
 ---
@@ -50,21 +50,21 @@ Just markdown.
         assert contract.constraints is None
         assert contract.is_tool_allowed("anything") is True
 
-    def test_missing_openskills_key(self) -> None:
+    def test_missing_scp_key(self) -> None:
         text = """\
 ---
 name: bad
-description: No openskills key.
+description: No scp key.
 ---
 """
-        with pytest.raises(ValueError, match="openskills"):
+        with pytest.raises(ValueError, match="scp"):
             load_skill_from_string(text)
 
 
 class TestLoadSkillFromDict:
     def test_from_api_response(self) -> None:
         data = {
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "api-skill",
             "description": "From API.",
             "constraints": {
@@ -75,8 +75,8 @@ class TestLoadSkillFromDict:
         assert isinstance(contract, SkillContract)
         assert contract.content == "# From API"
 
-    def test_missing_openskills_key(self) -> None:
-        with pytest.raises(ValueError, match="openskills"):
+    def test_missing_scp_key(self) -> None:
+        with pytest.raises(ValueError, match="scp"):
             load_skill_from_dict({"name": "bad"})
 
 

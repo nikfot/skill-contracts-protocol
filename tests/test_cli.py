@@ -1,10 +1,10 @@
-"""Tests for openskills.cli."""
+"""Tests for scp.cli."""
 
 from pathlib import Path
 
 from click.testing import CliRunner
 
-from openskills.cli import main
+from scp.cli import main
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "spec" / "examples"
 
@@ -28,15 +28,15 @@ class TestCLIValidate:
         runner = CliRunner()
         with runner.isolated_filesystem():
             Path("bad.yaml").write_text(
-                "---\nopenskills: '1.0'\nname: ''\ndescription: Valid\n---\n"
+                "---\nscp: '1.0'\nname: ''\ndescription: Valid\n---\n"
             )
             result = runner.invoke(main, ["validate", "bad.yaml"])
             assert result.exit_code == 1
 
-    def test_non_openskills_file_skipped(self) -> None:
+    def test_non_scp_file_skipped(self) -> None:
         runner = CliRunner()
         with runner.isolated_filesystem():
-            Path("plain.yaml").write_text("---\nname: not-openskills\n---\n")
+            Path("plain.yaml").write_text("---\nname: not-scp\n---\n")
             result = runner.invoke(main, ["validate", "plain.yaml"])
             assert "0 file(s) checked" in result.output
 
@@ -45,7 +45,7 @@ class TestCLIValidate:
         with runner.isolated_filesystem():
             Path("ref-err.yaml").write_text(
                 "---\n"
-                "openskills: '1.0'\n"
+                "scp: '1.0'\n"
                 "name: ref-test\n"
                 "description: Ref integrity test\n"
                 "constraints:\n"

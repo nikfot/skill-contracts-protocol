@@ -1,6 +1,6 @@
 # Elastic Agent Builder Integration
 
-This example shows how to convert between OpenSkills contracts (used by
+This example shows how to convert between SCP contracts (used by
 Cursor IDE skills, Claude Code, and other LLM agent frameworks) and
 [Elastic Agent Builder](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/skills)
 skill payloads.
@@ -9,14 +9,14 @@ skill payloads.
 
 | File | Direction | Description |
 |------|-----------|-------------|
-| `skill.md` | — | An OpenSkills skill with constraints (YAML frontmatter + Markdown) |
-| `convert_and_push.py` | OpenSkills → Kibana | Convert a skill and optionally push via the Kibana API |
+| `skill.md` | — | An SCP skill with constraints (YAML frontmatter + Markdown) |
+| `convert_and_push.py` | SCP → Kibana | Convert a skill and optionally push via the Kibana API |
 | `cursor_to_kibana.py` | Cursor → Kibana | Convert an existing Cursor SKILL.md into a Kibana payload |
 | `kibana_to_cursor.py` | Kibana → Cursor | Convert a Kibana skill JSON into a Cursor-compatible SKILL.md |
 
 ## Cursor SKILL.md → Kibana Agent Builder
 
-Take any OpenSkills-enhanced Cursor skill and deploy it to Kibana:
+Take any SCP-enhanced Cursor skill and deploy it to Kibana:
 
 ```bash
 # Convert the included Cursor IDE example

@@ -1,4 +1,4 @@
-"""OpenSkills runtime -- enforcement engine for skill contracts."""
+"""SCP runtime -- enforcement engine for skill contracts."""
 
 from .enforcer import SkillEnforcer
 from .evidence import EvidenceTracker

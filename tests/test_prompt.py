@@ -1,7 +1,7 @@
-"""Tests for openskills.adapters.prompt."""
+"""Tests for scp.adapters.prompt."""
 
-from openskills.adapters.prompt import build_system_prompt
-from openskills.models import (
+from scp.adapters.prompt import build_system_prompt
+from scp.models import (
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
@@ -14,7 +14,7 @@ from openskills.models import (
 class TestBuildSystemPrompt:
     def test_no_constraints(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="open",
             description="No constraints.",
         )
@@ -24,7 +24,7 @@ class TestBuildSystemPrompt:
 
     def test_full_contract(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="full-skill",
             description="Full featured skill.",
             constraints=Constraints(
@@ -60,7 +60,7 @@ class TestBuildSystemPrompt:
 
     def test_exclude_plan(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="no-plan-prompt",
             description="Plan excluded.",
             constraints=Constraints(
@@ -72,7 +72,7 @@ class TestBuildSystemPrompt:
 
     def test_tool_ids_only(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="tools-only",
             description="Just tools.",
             constraints=Constraints(
@@ -87,7 +87,7 @@ class TestBuildSystemPrompt:
 
     def test_evidence_only(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="evidence-only",
             description="Just evidence.",
             constraints=Constraints(
@@ -102,7 +102,7 @@ class TestBuildSystemPrompt:
 
     def test_args_template_in_plan(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="with-args",
             description="Plan with args.",
             constraints=Constraints(

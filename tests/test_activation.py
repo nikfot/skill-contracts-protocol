@@ -1,6 +1,6 @@
 """Tests for Activation metadata and exclusive activation semantics."""
 
-from openskills.models import Activation, SkillContract
+from scp.models import Activation, SkillContract
 
 
 class TestActivation:
@@ -26,7 +26,7 @@ class TestActivation:
 class TestEffectiveTriggers:
     def test_activation_triggers(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="act",
             description="Test.",
             activation=Activation(triggers=["x", "y"]),
@@ -35,7 +35,7 @@ class TestEffectiveTriggers:
 
     def test_no_activation_empty_triggers(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="none",
             description="Test.",
         )
@@ -43,7 +43,7 @@ class TestEffectiveTriggers:
 
     def test_activation_without_triggers(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="no-trig",
             description="Test.",
             activation=Activation(slash_command="my-skill"),
@@ -57,7 +57,7 @@ class TestExclusiveActivation:
 
     def test_no_activation_always_discoverable(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="passive",
             description="Test.",
         )
@@ -66,7 +66,7 @@ class TestExclusiveActivation:
 
     def test_activation_present_not_always_discoverable(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="active",
             description="Test.",
             activation=Activation(triggers=["latency"]),
@@ -76,7 +76,7 @@ class TestExclusiveActivation:
 
     def test_auto_discover_disabled(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="exclusive",
             description="Test.",
             activation=Activation(
@@ -89,7 +89,7 @@ class TestExclusiveActivation:
 
     def test_slash_command_only(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="slash",
             description="Test.",
             activation=Activation(slash_command="my-skill"),
@@ -100,7 +100,7 @@ class TestExclusiveActivation:
 
     def test_attachment_types(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="attach",
             description="Test.",
             activation=Activation(attachment_types=["alert", "case"]),
@@ -109,11 +109,11 @@ class TestExclusiveActivation:
         assert contract.activation.attachment_types == ["alert", "case"]
 
     def test_load_from_frontmatter(self) -> None:
-        from openskills.loader import load_skill_from_string
+        from scp.loader import load_skill_from_string
 
         text = """\
 ---
-openskills: "1.0"
+scp: "1.0"
 name: with-activation
 description: Has activation metadata.
 activation:

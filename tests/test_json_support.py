@@ -5,14 +5,14 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openskills.cli import main
-from openskills.loader import load_skill, load_skill_from_json
+from scp.cli import main
+from scp.loader import load_skill, load_skill_from_json
 
 
 class TestLoadSkillFromJson:
     def test_basic_json(self) -> None:
         text = json.dumps({
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "json-skill",
             "description": "From JSON.",
             "content": "# Hello\n\nBody.",
@@ -23,7 +23,7 @@ class TestLoadSkillFromJson:
 
     def test_json_with_constraints(self) -> None:
         text = json.dumps({
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "constrained-json",
             "description": "Constraints in JSON.",
             "constraints": {
@@ -38,7 +38,7 @@ class TestLoadSkillJsonFile:
     def test_load_json_file(self, tmp_path: Path) -> None:
         skill_file = tmp_path / "skill.json"
         skill_file.write_text(json.dumps({
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "file-json",
             "description": "From file.",
             "content": "Body.",
@@ -51,7 +51,7 @@ class TestCLIConvert:
     def test_yaml_to_json(self, tmp_path: Path) -> None:
         src = tmp_path / "skill.yaml"
         src.write_text(
-            "---\nopenskills: '1.0'\nname: convert-test\n"
+            "---\nscp: '1.0'\nname: convert-test\n"
             "description: Test conversion.\n---\n"
         )
         dst = tmp_path / "skill.json"
@@ -64,7 +64,7 @@ class TestCLIConvert:
     def test_json_to_md(self, tmp_path: Path) -> None:
         src = tmp_path / "skill.json"
         src.write_text(json.dumps({
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "to-md",
             "description": "Convert to MD.",
             "content": "# Heading\n\nBody.",
@@ -81,7 +81,7 @@ class TestCLIConvert:
     def test_md_to_json(self, tmp_path: Path) -> None:
         src = tmp_path / "skill.md"
         src.write_text(
-            "---\nopenskills: '1.0'\nname: md-to-json\n"
+            "---\nscp: '1.0'\nname: md-to-json\n"
             "description: Round trip.\n---\n\n# Content\n"
         )
         dst = tmp_path / "output.json"
@@ -95,7 +95,7 @@ class TestCLIConvert:
     def test_validate_json_file(self, tmp_path: Path) -> None:
         skill_file = tmp_path / "valid.json"
         skill_file.write_text(json.dumps({
-            "openskills": "1.0",
+            "scp": "1.0",
             "name": "json-validate",
             "description": "Validate JSON.",
         }))

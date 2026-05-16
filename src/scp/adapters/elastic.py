@@ -1,6 +1,6 @@
 """Elastic Agent Builder adapter.
 
-Convert between OpenSkills contracts and the Elastic Agent Builder
+Convert between SCP contracts and the Elastic Agent Builder
 Skills API (``POST /api/agent_builder/skills``) JSON payloads.
 
 Two integration modes:
@@ -32,7 +32,7 @@ def to_elastic_payload(
     """Convert a ``SkillContract`` to an Elastic Agent Builder API payload.
 
     Args:
-        contract: A parsed OpenSkills skill contract.
+        contract: A parsed SCP skill contract.
         inject_constraints: If ``True``, prepend a structured enforcement
             preamble (tool guardrails, evidence gates, finalization rules)
             to the ``content`` field so the LLM can self-enforce.
@@ -57,7 +57,7 @@ def to_elastic_payload(
 def from_elastic_payload(
     payload: dict[str, Any],
     *,
-    openskills_version: str = "1.0",
+    scp_version: str = "1.0",
 ) -> SkillContract:
     """Parse an Elastic Agent Builder skill payload into a ``SkillContract``.
 
@@ -68,7 +68,7 @@ def from_elastic_payload(
 
     Args:
         payload: A dict from ``GET /api/agent_builder/skills/{id}``.
-        openskills_version: Spec version to stamp on the contract.
+        scp_version: SCP spec version to stamp on the contract.
 
     Returns:
         A ``SkillContract`` with ``tool_ids`` populated from
@@ -80,7 +80,7 @@ def from_elastic_payload(
         constraints = Constraints(tool_ids=list(tool_ids))
 
     return SkillContract(
-        openskills=openskills_version,
+        scp=scp_version,
         name=payload.get("id") or payload["name"],
         description=payload.get("description", ""),
         constraints=constraints,

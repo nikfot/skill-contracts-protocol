@@ -1,9 +1,9 @@
-"""Tests for openskills.models."""
+"""Tests for scp.models."""
 
 import pytest
 from pydantic import ValidationError
 
-from openskills.models import (
+from scp.models import (
     Activation,
     Constraints,
     EvidenceItem,
@@ -73,7 +73,7 @@ class TestFinalizationRules:
 class TestSkillContract:
     def test_minimal_valid(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="test-skill",
             description="A test skill.",
         )
@@ -84,7 +84,7 @@ class TestSkillContract:
 
     def test_full_contract(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="full-skill",
             description="Full featured.",
             activation=Activation(triggers=["test"]),
@@ -107,7 +107,7 @@ class TestSkillContract:
 
     def test_is_tool_allowed_with_whitelist(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="gated",
             description="Tool gated.",
             constraints=Constraints(tool_ids=["run_query"]),
@@ -117,7 +117,7 @@ class TestSkillContract:
 
     def test_is_tool_allowed_unconstrained(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="open",
             description="No constraints.",
         )
@@ -125,7 +125,7 @@ class TestSkillContract:
 
     def test_is_tool_allowed_via_override(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="override",
             description="With override.",
             constraints=Constraints(
@@ -137,7 +137,7 @@ class TestSkillContract:
 
     def test_referenced_content_property(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="with-refs",
             description="Has referenced content.",
             constraints=Constraints(
@@ -153,7 +153,7 @@ class TestSkillContract:
 
     def test_referenced_content_empty_by_default(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="no-refs",
             description="No refs.",
         )
@@ -162,7 +162,7 @@ class TestSkillContract:
     def test_wrong_spec_version(self) -> None:
         with pytest.raises(ValidationError):
             SkillContract(
-                openskills="2.0",
+                scp="2.0",
                 name="bad-version",
                 description="Wrong version.",
             )

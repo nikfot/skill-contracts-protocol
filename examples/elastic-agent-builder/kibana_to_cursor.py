@@ -2,7 +2,7 @@
 """Convert an Elastic Agent Builder skill into a Cursor IDE SKILL.md.
 
 Demonstrates fetching (or simulating) a Kibana skill JSON payload and
-writing it as an OpenSkills-compatible SKILL.md that Cursor can use.
+writing it as an SCP-compatible SKILL.md that Cursor can use.
 
 Usage:
     python kibana_to_cursor.py                  # uses built-in example
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from openskills.adapters.elastic import from_elastic_payload
+from scp.adapters.elastic import from_elastic_payload
 
 EXAMPLE_KIBANA_SKILL = {
     "id": "triage-security-alerts",
@@ -59,7 +59,7 @@ def main() -> None:
 
     contract = from_elastic_payload(payload)
 
-    print("# Parsed as OpenSkills contract:")
+    print("# Parsed as SCP contract:")
     print(f"#   Name: {contract.name}")
     print(f"#   Description: {contract.description}")
     print(f"#   Tool IDs: {contract.tool_ids}")

@@ -1,10 +1,10 @@
-"""Tests for openskills.adapters.elastic."""
+"""Tests for scp.adapters.elastic."""
 
 from pathlib import Path
 
-from openskills import load_skill
-from openskills.adapters.elastic import from_elastic_payload, to_elastic_payload
-from openskills.models import (
+from scp import load_skill
+from scp.adapters.elastic import from_elastic_payload, to_elastic_payload
+from scp.models import (
     Activation,
     Constraints,
     EvidenceItem,
@@ -19,7 +19,7 @@ CURSOR_EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "cursor-i
 
 def _full_contract() -> SkillContract:
     return SkillContract(
-        openskills="1.0",
+        scp="1.0",
         name="investigate-latency",
         description="Investigate service latency spikes.",
         activation=Activation(triggers=["latency", "p99"]),
@@ -75,7 +75,7 @@ class TestToElasticPayload:
 
     def test_no_constraints(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="simple-skill",
             description="No constraints.",
             content="Just markdown.",
@@ -86,7 +86,7 @@ class TestToElasticPayload:
 
     def test_description_truncated_at_1024(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="long-desc",
             description="x" * 2000,
         )
@@ -95,7 +95,7 @@ class TestToElasticPayload:
 
     def test_no_activation(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="no-activation",
             description="Plain description.",
         )
