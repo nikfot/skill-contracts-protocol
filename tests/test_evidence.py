@@ -1,17 +1,17 @@
-"""Tests for openskills.runtime.evidence."""
+"""Tests for scp.runtime.evidence."""
 
-from openskills.models import (
+from scp.models import (
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
     SkillContract,
 )
-from openskills.runtime.evidence import EvidenceTracker
+from scp.runtime.evidence import EvidenceTracker
 
 
 def _make_contract(evidence_ids: list[str]) -> SkillContract:
     return SkillContract(
-        openskills="1.0",
+        scp="1.0",
         name="test",
         description="Test.",
         constraints=Constraints(
@@ -68,7 +68,7 @@ class TestEvidenceTracker:
 
     def test_no_requirements(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="open",
             description="No evidence needed.",
         )

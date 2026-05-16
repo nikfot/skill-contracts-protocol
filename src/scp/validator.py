@@ -1,4 +1,4 @@
-"""Referential integrity and semantic validation for OpenSkills contracts."""
+"""Referential integrity and semantic validation for SCP contracts."""
 
 from __future__ import annotations
 

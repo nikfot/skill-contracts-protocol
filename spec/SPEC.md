@@ -1,8 +1,8 @@
-# OpenSkills Specification v1.0
+# SCP Specification v1.0 -- Skill Contracts Protocol
 
 ## Overview
 
-OpenSkills defines a declarative contract for LLM agent skills. A skill contract specifies:
+SCP (Skill Contracts Protocol) defines a declarative contract for LLM agent skills. A skill contract specifies:
 
 - **What tools** the agent is allowed to use
 - **What steps** it should follow (query plan)
@@ -10,21 +10,21 @@ OpenSkills defines a declarative contract for LLM agent skills. A skill contract
 - **When it can finalize** (evidence gates and iteration minimums)
 - **Tool overrides** for aliasing legacy tool names
 
-The contract lives as YAML frontmatter in a SKILL.md file (or as standalone YAML/JSON), making it portable across agent frameworks.
+The contract lives as YAML frontmatter in a SKILL.md file (or as standalone YAML/JSON), making it portable across agent frameworks. SCP extends the [agentskills.io](https://agentskills.io) format with enforceable runtime constraints.
 
 ## Frontmatter Format
 
-A SKILL.md file with OpenSkills constraints uses standard YAML frontmatter delimited by `---`:
+A SKILL.md file with SCP constraints uses standard YAML frontmatter delimited by `---`:
 
 ```yaml
 ---
-openskills: "1.0"
+scp: "1.0"
 name: <string>            # required
 description: <string>     # required
 activation:               # optional, exclusive invocation routes
   triggers: [...]
   slash_command: <string>
-constraints:              # optional, the OpenSkills contract
+constraints:              # optional, the SCP contract
   tool_ids: [...]
   plan: [...]
   evidence: { required: [...] }
@@ -37,9 +37,9 @@ constraints:              # optional, the OpenSkills contract
 Free-form skill documentation follows the frontmatter.
 ```
 
-The `openskills` key signals that this file contains an OpenSkills contract. Its value is the spec version (`"1.0"`).
+The `scp` key signals that this file contains an SCP contract. Its value is the spec version (`"1.0"`).
 
-Files without a `constraints` block are valid OpenSkills files -- they simply have no enforcement rules.
+Files without a `constraints` block are valid SCP files -- they simply have no enforcement rules.
 
 ## Fields
 
@@ -47,7 +47,7 @@ Files without a `constraints` block are valid OpenSkills files -- they simply ha
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `openskills` | string | yes | Spec version. Must be `"1.0"` for this version. |
+| `scp` | string | yes | Spec version. Must be `"1.0"` for this version. |
 | `name` | string | yes | Unique skill identifier (kebab-case recommended). |
 | `description` | string | yes | One-line human-readable summary. |
 | `activation` | object | no | Exclusive invocation routes. When absent the skill is always discoverable. When present the skill is invocable **only** through its declared routes. See below. |
@@ -120,9 +120,9 @@ Each entry in `constraints.referenced_content`:
 
 ## Validation Rules
 
-A valid OpenSkills contract must satisfy:
+A valid SCP contract must satisfy:
 
-1. **Schema conformance**: All fields match the types specified above and in `openskills-schema.json`.
+1. **Schema conformance**: All fields match the types specified above and in `scp-schema.json`.
 2. **Plan-tools consistency**: Every `tool` in `plan` steps must appear in `tool_ids` (when `tool_ids` is defined).
 3. **Tool-overrides consistency**: Every value in `tool_overrides` must appear in `tool_ids` (when `tool_ids` is defined).
 4. **Evidence ID uniqueness**: No duplicate `id` values within `evidence.required`.
@@ -142,13 +142,13 @@ Placeholders are resolved at runtime by the agent framework. Unresolved placehol
 
 ## Backward Compatibility
 
-Files without the `openskills` key are not OpenSkills files. Parsers should ignore them gracefully.
+Files without the `scp` key are not SCP files. Parsers should ignore them gracefully.
 
-Files with `openskills: "1.0"` but no `constraints` block are valid -- they declare participation in the spec but impose no enforcement.
+Files with `scp: "1.0"` but no `constraints` block are valid -- they declare participation in the protocol but impose no enforcement.
 
 ## Schema
 
-The machine-readable JSON Schema is at `openskills-schema.json` in this directory.
+The machine-readable JSON Schema is at `scp-schema.json` in this directory.
 
 ## Examples
 

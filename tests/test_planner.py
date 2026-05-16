@@ -1,11 +1,11 @@
-"""Tests for openskills.runtime.planner."""
+"""Tests for scp.runtime.planner."""
 
-from openskills.models import (
+from scp.models import (
     Constraints,
     PlanStep,
     SkillContract,
 )
-from openskills.runtime.planner import PlanExecutor
+from scp.runtime.planner import PlanExecutor
 
 
 def _make_contract(
@@ -13,7 +13,7 @@ def _make_contract(
     overrides: dict[str, str] | None = None,
 ) -> SkillContract:
     return SkillContract(
-        openskills="1.0",
+        scp="1.0",
         name="test",
         description="Test.",
         constraints=Constraints(
@@ -75,7 +75,7 @@ class TestPlanExecutor:
 
     def test_empty_plan(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="empty",
             description="No plan.",
         )

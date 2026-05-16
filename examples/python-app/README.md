@@ -1,6 +1,6 @@
-# OpenSkills in a Python Application
+# SCP in a Python Application
 
-This example shows how to use the `openskills` library to enforce skill
+This example shows how to use the `scp` library to enforce skill
 contracts inside your own agent loop. No specific LLM SDK is required --
 the runtime works with any tool-calling framework.
 
@@ -15,7 +15,7 @@ the runtime works with any tool-calling framework.
 ## Files
 
 - `agent_loop.py` -- Complete working example of an agent loop with
-  OpenSkills enforcement. Simulates tool calls with mock responses.
+  SCP enforcement. Simulates tool calls with mock responses.
 - `skill.yaml` -- The skill contract used by the example.
 
 ## Running the Example
@@ -25,7 +25,7 @@ the runtime works with any tool-calling framework.
 uv run python examples/python-app/agent_loop.py
 
 # Or with pip:
-pip install openskills
+pip install skill-contracts-protocol
 python examples/python-app/agent_loop.py
 ```
 
@@ -82,5 +82,5 @@ The example uses mock tool responses. In a real application, replace
 - **CrewAI**: Wrap as a CrewAI tool and record evidence
 - **Custom**: Call any HTTP API, CLI, or SDK
 
-The OpenSkills runtime doesn't care how tools are called -- it only
+The SCP runtime doesn't care how tools are called -- it only
 cares about what came back and whether the evidence requirements are met.

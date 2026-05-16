@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert an OpenSkills contract to an Elastic Agent Builder payload.
+"""Convert an SCP contract to an Elastic Agent Builder payload.
 
 Usage:
     python convert_and_push.py                # print JSON to stdout
@@ -18,8 +18,8 @@ import sys
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-from openskills import load_skill
-from openskills.adapters.elastic import to_elastic_payload
+from scp import load_skill
+from scp.adapters.elastic import to_elastic_payload
 
 
 def main() -> None:

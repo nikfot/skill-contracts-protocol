@@ -1,4 +1,4 @@
-"""Load OpenSkills contracts from SKILL.md, YAML, or JSON files."""
+"""Load SCP contracts from SKILL.md, YAML, or JSON files."""
 
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ def load_skill(path: str | Path) -> SkillContract:
     Supports:
     - Markdown files with YAML frontmatter (``---`` delimiters)
     - Plain YAML files (treated as frontmatter-only, no body)
-    - JSON files (must contain an ``openskills`` key)
+    - JSON files (must contain an ``scp`` key)
 
-    Raises ``ValueError`` if the file lacks an ``openskills`` key or
+    Raises ``ValueError`` if the file lacks an ``scp`` key or
     fails validation.
     """
     path = Path(path)
@@ -39,8 +39,8 @@ def load_skill_from_string(text: str) -> SkillContract:
     post = frontmatter.loads(text)
     metadata: dict[str, Any] = dict(post.metadata)
 
-    if "openskills" not in metadata:
-        raise ValueError("Missing 'openskills' key in frontmatter -- not an OpenSkills file.")
+    if "scp" not in metadata:
+        raise ValueError("Missing 'scp' key in frontmatter -- not an SCP file.")
 
     body = str(post.content).strip()
     metadata["content"] = body
@@ -50,7 +50,7 @@ def load_skill_from_string(text: str) -> SkillContract:
 def load_skill_from_json(text: str) -> SkillContract:
     """Parse a skill contract from a JSON string.
 
-    The JSON object must contain an ``openskills`` key. An optional
+    The JSON object must contain an ``scp`` key. An optional
     ``content`` key is used as the Markdown body.
     """
     data: dict[str, Any] = json.loads(text)
@@ -63,8 +63,8 @@ def load_skill_from_dict(data: dict[str, Any], content: str = "") -> SkillContra
     Useful when consuming skill metadata from an HTTP API or JSON file
     rather than a SKILL.md file on disk.
     """
-    if "openskills" not in data:
-        raise ValueError("Missing 'openskills' key -- not an OpenSkills contract.")
+    if "scp" not in data:
+        raise ValueError("Missing 'scp' key -- not an SCP contract.")
 
     merged = {**data, "content": content}
     return SkillContract.model_validate(merged)

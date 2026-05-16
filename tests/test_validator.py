@@ -1,6 +1,6 @@
-"""Tests for openskills.validator."""
+"""Tests for scp.validator."""
 
-from openskills.models import (
+from scp.models import (
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
@@ -8,13 +8,13 @@ from openskills.models import (
     ReferencedContent,
     SkillContract,
 )
-from openskills.validator import validate_contract
+from scp.validator import validate_contract
 
 
 class TestValidateContract:
     def test_valid_full_contract(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="good",
             description="Valid.",
             constraints=Constraints(
@@ -30,7 +30,7 @@ class TestValidateContract:
 
     def test_plan_tool_not_in_allowed(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="bad-plan",
             description="Plan tool not allowed.",
             constraints=Constraints(
@@ -45,7 +45,7 @@ class TestValidateContract:
 
     def test_override_target_not_in_allowed(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="bad-override",
             description="Override target not allowed.",
             constraints=Constraints(
@@ -59,7 +59,7 @@ class TestValidateContract:
 
     def test_no_tool_ids_skips_checks(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="open",
             description="No tool_ids defined.",
             constraints=Constraints(
@@ -71,7 +71,7 @@ class TestValidateContract:
 
     def test_no_constraints(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="bare",
             description="No constraints at all.",
         )
@@ -79,7 +79,7 @@ class TestValidateContract:
 
     def test_duplicate_referenced_content_names(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="dup-refs",
             description="Duplicate ref names.",
             constraints=Constraints(
@@ -95,7 +95,7 @@ class TestValidateContract:
 
     def test_unique_referenced_content_names(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="unique-refs",
             description="Unique ref names.",
             constraints=Constraints(
@@ -109,7 +109,7 @@ class TestValidateContract:
 
     def test_multiple_errors(self) -> None:
         contract = SkillContract(
-            openskills="1.0",
+            scp="1.0",
             name="multi-error",
             description="Multiple issues.",
             constraints=Constraints(

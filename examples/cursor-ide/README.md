@@ -1,6 +1,6 @@
-# OpenSkills + Cursor IDE
+# SCP + Cursor IDE
 
-This example shows how to enhance a Cursor skill with OpenSkills
+This example shows how to enhance a Cursor skill with SCP (Skill Contracts Protocol)
 constraints so the agent follows a structured plan instead of
 freestyling.
 
@@ -27,13 +27,13 @@ The agent reads this as *guidance* but has no guardrails. It might skip
 steps, call tools you didn't intend, or finalize before collecting
 enough evidence.
 
-## After: OpenSkills-Enhanced SKILL.md
+## After: SCP-Enhanced SKILL.md
 
-Add an `openskills` version and a `constraints` block to the same file:
+Add an `scp` version and a `constraints` block to the same file:
 
 ```yaml
 ---
-openskills: "1.0"
+scp: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes.
 tools: [Bash, Read]
@@ -68,7 +68,7 @@ constraints:
 ```
 
 The markdown body stays the same. The `constraints` block is what
-OpenSkills adds.
+SCP adds.
 
 ## How to Use
 
@@ -84,21 +84,21 @@ OpenSkills adds.
      iteration of tool calls is complete
 
 3. The `constraints` block is backward-compatible -- agents that don't
-   understand OpenSkills simply ignore it and use the markdown body.
+   understand SCP simply ignore it and use the markdown body.
 
 ## Validating Your Skill
 
 ```bash
-pip install openskills
-openskills validate .cursor/skills/investigate-latency/SKILL.md
+pip install skill-contracts-protocol
+scp validate .cursor/skills/investigate-latency/SKILL.md
 ```
 
 ## What Changes for the Agent?
 
-| Aspect | Standard SKILL.md | OpenSkills SKILL.md |
+| Aspect | Standard SKILL.md | SCP SKILL.md |
 |--------|-------------------|---------------------|
 | Tool usage | Any tool available | Only `tool_ids` |
 | Investigation order | Agent decides | `plan` steps first, then free-form |
 | Completeness | Agent decides when done | Must collect all `evidence.required` |
 | Early termination | Can stop anytime | Blocked until `finalization` rules met |
-| Backward compat | N/A | Non-OpenSkills agents ignore `constraints` |
+| Backward compat | N/A | Non-SCP agents ignore `constraints` |

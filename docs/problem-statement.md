@@ -1,10 +1,10 @@
-# The Problem OpenSkills Solves
+# The Problem SCP Solves
 
 ## TL;DR
 
 Today's LLM agent skills describe *what to do* but cannot *enforce how
 it gets done*. Agents skip steps, call unintended tools, and finalize
-with incomplete evidence. OpenSkills turns guidance into a contract.
+with incomplete evidence. SCP (Skill Contracts Protocol) turns guidance into a contract.
 
 ## A Concrete Example
 
@@ -28,7 +28,7 @@ tools: [Bash, Read]
 You ask: *"Investigate the latency spike on sla.eu-west-1.aws.found.io
 at 14:00 UTC."*
 
-### What happens without OpenSkills
+### What happens without SCP
 
 The agent reads the markdown, treats the numbered list as *suggestions*,
 and does this:
@@ -53,13 +53,13 @@ In a real incident, an SRE reads this report, sees the gap, and redoes
 the investigation manually. The skill *described* the right process but
 couldn't *enforce* it.
 
-### What happens with OpenSkills
+### What happens with SCP
 
 Same skill, same markdown body, but with a `constraints` block added:
 
 ```yaml
 ---
-openskills: "1.0"
+scp: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes.
 tools: [Bash, Read]
@@ -101,7 +101,7 @@ Now the enforcement layer kicks in:
 
 ## The Difference
 
-| Aspect | Without OpenSkills | With OpenSkills |
+| Aspect | Without SCP | With SCP |
 |--------|-------------------|-----------------|
 | Steps completed | 2 of 3 | 3 of 3 |
 | Evidence gaps | error_correlation missing | None |
@@ -109,7 +109,7 @@ Now the enforcement layer kicks in:
 | Human redo needed | Yes | No |
 | Time wasted | Agent time + human redo | Agent time only |
 
-## Three Failure Modes OpenSkills Prevents
+## Three Failure Modes SCP Prevents
 
 ### 1. Premature Finalization
 
@@ -117,7 +117,7 @@ The agent thinks it's done before it is. It saw some data, generated
 some text, and stopped. Without evidence gates, there is no mechanism
 to say "you haven't proven X yet."
 
-**OpenSkills fix:** `evidence.required` defines what must be collected.
+**SCP fix:** `evidence.required` defines what must be collected.
 `finalization.require_all_evidence: true` blocks early termination.
 
 ### 2. Tool Drift
@@ -126,7 +126,7 @@ The agent calls tools you didn't intend. Maybe it tries to
 `delete_pod` instead of `get_pod`, or calls a tool that modifies state
 during a read-only investigation.
 
-**OpenSkills fix:** `tool_ids` is a whitelist. Calls to unlisted
+**SCP fix:** `tool_ids` is a whitelist. Calls to unlisted
 tools are blocked before execution.
 
 ### 3. Step Skipping
@@ -135,7 +135,7 @@ The agent cherry-picks the easy steps (fetch data, compute a stat) and
 skips the hard ones (cross-correlate, decompose by dimension). The
 markdown says "do these 4 things" but the agent does 2.
 
-**OpenSkills fix:** `plan` defines ordered steps that execute
+**SCP fix:** `plan` defines ordered steps that execute
 deterministically before the agent gets free-form control. Combined
 with evidence gates, skipping a step means missing evidence, which
 blocks finalization.
@@ -148,15 +148,15 @@ You can. And it helps -- for a while. But:
   followed. A constraint that worked with GPT-4 may be ignored by
   GPT-5.
 - **Prompts don't compose.** If you have 50 skills, you need 50
-  carefully crafted prompts. OpenSkills constraints are structured data
+  carefully crafted prompts. SCP constraints are structured data
   that tools can validate, not prose that models interpret.
-- **Prompts can't be verified.** You can't run `openskills validate`
+- **Prompts can't be verified.** You can't run `scp validate`
   on a system prompt to check that all plan steps reference allowed
   tools. You can with a contract.
 - **Prompts are invisible.** When the agent misbehaves, you read logs
-  and guess what went wrong. With OpenSkills, the enforcer tells you
+  and guess what went wrong. With SCP, the enforcer tells you
   exactly which evidence was missing or which tool was blocked.
 
 ## The One-Liner
 
-Without OpenSkills, a SKILL.md is a *hope*. With it, it's a *contract*.
+Without SCP, a SKILL.md is a *hope*. With it, it's a *contract*.

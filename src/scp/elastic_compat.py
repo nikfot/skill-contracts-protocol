@@ -1,6 +1,6 @@
 """Elastic Agent Builder compatibility checks.
 
-Validates that an OpenSkills contract conforms to Elastic naming
+Validates that an SCP contract conforms to Elastic naming
 conventions, API limits, and skill authoring guidelines.
 """
 

@@ -1,4 +1,4 @@
-"""OpenSkills -- declarative skill contracts for LLM agents."""
+"""SCP -- Skill Contracts Protocol. Declarative, enforceable contracts for LLM agent skills."""
 
 __version__ = "0.1.0"
 

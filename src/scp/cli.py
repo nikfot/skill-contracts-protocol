@@ -1,4 +1,4 @@
-"""CLI entry point: openskills validate/convert."""
+"""CLI entry point: scp validate/convert/elastic-check."""
 
 from __future__ import annotations
 
@@ -17,15 +17,15 @@ from .validator import validate_contract
 
 
 @click.group()
-@click.version_option()
+@click.version_option(package_name="skill-contracts-protocol")
 def main() -> None:
-    """OpenSkills -- declarative skill contracts for LLM agents."""
+    """SCP -- Skill Contracts Protocol. Declarative, enforceable contracts for LLM agent skills."""
 
 
 @main.command()
 @click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
 def validate(paths: tuple[str, ...]) -> None:
-    """Validate skill files against the OpenSkills v1.0 spec.
+    """Validate skill files against the SCP v1.0 spec.
 
     Accepts files (.yaml, .yml, .md) or directories (scanned recursively).
     """
@@ -52,7 +52,7 @@ def validate(paths: tuple[str, ...]) -> None:
             post = frontmatter.loads(text)
             metadata = dict(post.metadata)
 
-        if "openskills" not in metadata:
+        if "scp" not in metadata:
             continue
 
         checked += 1
@@ -138,7 +138,7 @@ def elastic_check(paths: tuple[str, ...]) -> None:
         post = frontmatter.loads(text)
         metadata = dict(post.metadata)
 
-        if "openskills" not in metadata:
+        if "scp" not in metadata:
             continue
 
         checked += 1

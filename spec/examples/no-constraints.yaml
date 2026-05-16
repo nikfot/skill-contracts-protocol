@@ -1,5 +1,5 @@
 ---
-openskills: "1.0"
+scp: "1.0"
 name: general-troubleshooting
 description: General-purpose troubleshooting with no enforcement constraints.
 activation:
@@ -11,7 +11,7 @@ activation:
 
 # General Troubleshooting
 
-This skill declares participation in OpenSkills but defines no constraints.
+This skill declares participation in SCP but defines no constraints.
 The agent operates with full freedom -- any tool, any order, no evidence gates.
 
 This is useful for discovery-oriented or exploratory tasks where rigid plans

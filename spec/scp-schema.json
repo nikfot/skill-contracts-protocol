@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/nikfot/openskills/spec/openskills-schema.json",
-  "title": "OpenSkills v1.0",
-  "description": "JSON Schema for OpenSkills declarative LLM agent skill contracts.",
+  "$id": "https://github.com/nikfot/skill-contracts-protocol/spec/scp-schema.json",
+  "title": "SCP v1.0 -- Skill Contracts Protocol",
+  "description": "JSON Schema for SCP (Skill Contracts Protocol) declarative LLM agent skill contracts.",
   "type": "object",
-  "required": ["openskills", "name", "description"],
+  "required": ["scp", "name", "description"],
   "properties": {
-    "openskills": {
+    "scp": {
       "type": "string",
       "const": "1.0",
-      "description": "Specification version."
+      "description": "SCP specification version."
     },
     "name": {
       "type": "string",

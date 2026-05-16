@@ -1,18 +1,18 @@
-"""Tests for openskills.runtime.enforcer."""
+"""Tests for scp.runtime.enforcer."""
 
-from openskills.models import (
+from scp.models import (
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
     FinalizationRules,
     SkillContract,
 )
-from openskills.runtime.enforcer import SkillEnforcer
-from openskills.runtime.evidence import EvidenceTracker
+from scp.runtime.enforcer import SkillEnforcer
+from scp.runtime.evidence import EvidenceTracker
 
 
 def _make_contract(**kwargs: object) -> SkillContract:
-    defaults = {"openskills": "1.0", "name": "test", "description": "Test."}
+    defaults = {"scp": "1.0", "name": "test", "description": "Test."}
     return SkillContract(**{**defaults, **kwargs})  # type: ignore[arg-type]
 
 

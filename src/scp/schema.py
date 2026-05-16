@@ -1,4 +1,4 @@
-"""JSON Schema loading and validation for OpenSkills contracts."""
+"""JSON Schema loading and validation for SCP contracts."""
 
 from __future__ import annotations
 
@@ -9,19 +9,19 @@ from typing import Any
 
 import jsonschema
 
-_SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "spec" / "openskills-schema.json"
+_SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "spec" / "scp-schema.json"
 
 
 @lru_cache(maxsize=1)
 def get_schema() -> dict[str, Any]:
-    """Load and cache the OpenSkills JSON Schema."""
+    """Load and cache the SCP JSON Schema."""
     text = _SCHEMA_PATH.read_text(encoding="utf-8")
     schema: dict[str, Any] = json.loads(text)
     return schema
 
 
 def validate_against_schema(data: dict[str, Any]) -> list[str]:
-    """Validate a dict against the OpenSkills JSON Schema.
+    """Validate a dict against the SCP JSON Schema.
 
     Returns a list of error messages. Empty list means valid.
     """

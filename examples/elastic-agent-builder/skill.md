@@ -1,5 +1,5 @@
 ---
-openskills: "1.0"
+scp: "1.0"
 name: investigate-log-errors
 description: Triage application log errors by severity, affected service, and host. Use when a user asks to investigate or summarize log errors.
 activation:
