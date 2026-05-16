@@ -125,3 +125,12 @@ class TestLoadSkillFromFile:
         contract = load_skill(path)
         assert len(contract.required_evidence) == 5
         assert contract.finalization.min_iterations == 2
+
+    def test_referenced_content_example(self) -> None:
+        path = EXAMPLES_DIR / "referenced-content.yaml"
+        if not path.exists():
+            pytest.skip("Example file not found")
+        contract = load_skill(path)
+        assert len(contract.referenced_content) == 2
+        assert contract.referenced_content[0].name == "queries"
+        assert contract.referenced_content[1].required is True

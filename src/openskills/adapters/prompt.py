@@ -56,6 +56,19 @@ def build_system_prompt(contract: SkillContract, include_plan: bool = True) -> s
             sections.append(line)
         sections.append("")
 
+    if contract.referenced_content:
+        sections.append("### Referenced Content")
+        sections.append("The following supplementary content blocks are available:")
+        for ref in contract.referenced_content:
+            req_tag = " **(required)**" if ref.required else ""
+            path_tag = f" (`{ref.path}`)" if ref.path else ""
+            sections.append(f"- **{ref.name}**{path_tag}{req_tag}")
+        required_refs = [r for r in contract.referenced_content if r.required]
+        if required_refs:
+            sections.append("")
+            sections.append("You MUST consult the required content blocks before finalizing.")
+        sections.append("")
+
     if contract.required_evidence:
         sections.append("### Required Evidence")
         sections.append("You MUST collect ALL of the following before finalizing:")

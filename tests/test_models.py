@@ -9,6 +9,7 @@ from openskills.models import (
     EvidenceRequirements,
     FinalizationRules,
     PlanStep,
+    ReferencedContent,
     SkillContract,
 )
 
@@ -132,6 +133,30 @@ class TestSkillContract:
             ),
         )
         assert contract.is_tool_allowed("legacy_search") is True
+
+    def test_referenced_content_property(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="with-refs",
+            description="Has referenced content.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries", path="./queries", content="SELECT 1"),
+                    ReferencedContent(name="linux", required=True),
+                ]
+            ),
+        )
+        assert len(contract.referenced_content) == 2
+        assert contract.referenced_content[0].name == "queries"
+        assert contract.referenced_content[1].required is True
+
+    def test_referenced_content_empty_by_default(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="no-refs",
+            description="No refs.",
+        )
+        assert contract.referenced_content == []
 
     def test_wrong_spec_version(self) -> None:
         with pytest.raises(ValidationError):

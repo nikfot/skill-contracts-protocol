@@ -38,4 +38,10 @@ def validate_contract(contract: SkillContract) -> list[str]:
             errors.append(f"Duplicate evidence ID: '{item.id}'")
         seen_evidence_ids.add(item.id)
 
+    seen_ref_names: set[str] = set()
+    for ref in contract.referenced_content:
+        if ref.name in seen_ref_names:
+            errors.append(f"Duplicate referenced_content name: '{ref.name}'")
+        seen_ref_names.add(ref.name)
+
     return errors

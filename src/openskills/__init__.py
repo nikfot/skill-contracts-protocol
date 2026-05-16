@@ -9,6 +9,7 @@ from .models import (
     EvidenceRequirements,
     FinalizationRules,
     PlanStep,
+    ReferencedContent,
     SkillContract,
 )
 
@@ -18,6 +19,7 @@ __all__ = [
     "EvidenceRequirements",
     "FinalizationRules",
     "PlanStep",
+    "ReferencedContent",
     "SkillContract",
     "load_skill",
     "load_skill_from_dict",

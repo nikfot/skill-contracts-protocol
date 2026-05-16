@@ -60,6 +60,7 @@ Files without a `constraints` block are valid OpenSkills files -- they simply ha
 | `evidence` | object | no | Evidence requirements for finalization. |
 | `finalization` | object | no | Rules governing when the agent may produce its final output. |
 | `tool_overrides` | map (string -> string) | no | Alias mapping: keys are legacy/generic names, values are actual tool names. |
+| `referenced_content` | list of ReferencedContent | no | Named supplementary content blocks the agent can read selectively. |
 
 ### PlanStep
 
@@ -83,6 +84,17 @@ Each entry in `constraints.plan`:
 |-------|------|----------|-------------|
 | `id` | string | yes | Machine-readable identifier (snake_case). |
 | `description` | string | yes | Human-readable explanation of what constitutes this evidence. |
+
+### ReferencedContent
+
+Each entry in `constraints.referenced_content`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Unique name for this content block. |
+| `path` | string | no | Relative path hint (e.g. `./queries`). Used by adapters to generate references. |
+| `content` | string | no | Inline Markdown content. |
+| `required` | boolean | no | If `true`, the agent must consult this block before finalizing. Default: `false`. |
 
 ### `constraints.finalization`
 

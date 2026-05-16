@@ -44,6 +44,15 @@ class FinalizationRules(BaseModel):
     min_iterations: int = Field(default=0, ge=0)
 
 
+class ReferencedContent(BaseModel):
+    """A named supplementary content block the agent can consult selectively."""
+
+    name: str = Field(min_length=1)
+    path: str = Field(default="", description="Relative path hint (e.g. ``./queries``).")
+    content: str = Field(default="", description="Inline Markdown content.")
+    required: bool = Field(default=False, description="If true, the agent must consult this block before finalizing.")
+
+
 class Constraints(BaseModel):
     """The enforcement contract for a skill."""
 
@@ -52,6 +61,7 @@ class Constraints(BaseModel):
     evidence: EvidenceRequirements | None = None
     finalization: FinalizationRules | None = None
     tool_overrides: dict[str, str] | None = None
+    referenced_content: list[ReferencedContent] | None = None
 
 
 class SkillContract(BaseModel):
@@ -98,6 +108,13 @@ class SkillContract(BaseModel):
         if self.constraints and self.constraints.tool_overrides:
             return self.constraints.tool_overrides
         return {}
+
+    @property
+    def referenced_content(self) -> list[ReferencedContent]:
+        """Referenced content blocks, empty if none defined."""
+        if self.constraints and self.constraints.referenced_content:
+            return self.constraints.referenced_content
+        return []
 
     def resolve_tool(self, name: str) -> str:
         """Resolve a tool name through overrides."""

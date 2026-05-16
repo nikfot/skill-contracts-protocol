@@ -77,6 +77,11 @@
           "type": "object",
           "additionalProperties": { "type": "string", "minLength": 1 },
           "description": "Alias mapping: legacy tool name -> actual tool name."
+        },
+        "referenced_content": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ReferencedContent" },
+          "description": "Named supplementary content blocks the agent can read selectively."
         }
       },
       "additionalProperties": false
@@ -119,6 +124,31 @@
           "type": "string",
           "minLength": 1,
           "description": "What constitutes this evidence."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReferencedContent": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique name for this content block."
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path hint (e.g. ./queries)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Inline Markdown content."
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the agent must consult this block before finalizing."
         }
       },
       "additionalProperties": false

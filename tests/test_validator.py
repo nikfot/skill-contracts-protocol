@@ -5,6 +5,7 @@ from openskills.models import (
     EvidenceItem,
     EvidenceRequirements,
     PlanStep,
+    ReferencedContent,
     SkillContract,
 )
 from openskills.validator import validate_contract
@@ -73,6 +74,36 @@ class TestValidateContract:
             openskills="1.0",
             name="bare",
             description="No constraints at all.",
+        )
+        assert validate_contract(contract) == []
+
+    def test_duplicate_referenced_content_names(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="dup-refs",
+            description="Duplicate ref names.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries"),
+                    ReferencedContent(name="queries"),
+                ]
+            ),
+        )
+        errors = validate_contract(contract)
+        assert len(errors) == 1
+        assert "queries" in errors[0]
+
+    def test_unique_referenced_content_names(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="unique-refs",
+            description="Unique ref names.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries"),
+                    ReferencedContent(name="linux"),
+                ]
+            ),
         )
         assert validate_contract(contract) == []
 
