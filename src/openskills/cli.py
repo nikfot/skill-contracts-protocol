@@ -10,7 +10,8 @@ import click
 import frontmatter
 import yaml
 
-from .loader import load_skill
+from .elastic_compat import validate_elastic_compatibility
+from .loader import load_skill, load_skill_from_string
 from .schema import validate_against_schema
 from .validator import validate_contract
 
@@ -113,6 +114,55 @@ def convert(input_path: str, output_path: str) -> None:
         sys.exit(1)
 
     click.echo(f"Converted {input_path} -> {output_path}")
+
+
+@main.command("elastic-check")
+@click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
+def elastic_check(paths: tuple[str, ...]) -> None:
+    """Check skill files for Elastic Agent Builder compatibility.
+
+    Validates name length (64 chars), description length (1024 chars),
+    tool count limits (100), description quality ('Use when...' clause),
+    and tool namespace conventions.
+    """
+    files = _collect_files(paths)
+    if not files:
+        click.echo("No skill files found.", err=True)
+        sys.exit(1)
+
+    total_issues = 0
+    checked = 0
+
+    for path in sorted(files):
+        text = path.read_text(encoding="utf-8")
+        post = frontmatter.loads(text)
+        metadata = dict(post.metadata)
+
+        if "openskills" not in metadata:
+            continue
+
+        checked += 1
+
+        try:
+            contract = load_skill_from_string(text)
+        except Exception as exc:
+            click.echo(f"\n{path}:")
+            click.echo(f"  - Parse error: {exc}")
+            total_issues += 1
+            continue
+
+        issues = validate_elastic_compatibility(contract)
+
+        if issues:
+            click.echo(f"\n{path}:")
+            for issue in issues:
+                click.echo(f"  - {issue}")
+            total_issues += len(issues)
+        else:
+            click.echo(f"  {path}: elastic-compatible")
+
+    click.echo(f"\n{checked} file(s) checked, {total_issues} issue(s).")
+    sys.exit(1 if total_issues > 0 else 0)
 
 
 def _collect_files(paths: tuple[str, ...]) -> list[Path]:
