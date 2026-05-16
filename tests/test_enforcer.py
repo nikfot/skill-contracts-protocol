@@ -5,7 +5,6 @@ from openskills.models import (
     EvidenceItem,
     EvidenceRequirements,
     FinalizationRules,
-    PlanStep,
     SkillContract,
 )
 from openskills.runtime.enforcer import SkillEnforcer
