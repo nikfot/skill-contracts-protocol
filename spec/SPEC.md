@@ -23,7 +23,7 @@ name: <string>            # required
 description: <string>     # required
 triggers: [<string>, ...] # optional, keywords for skill selection
 constraints:              # optional, the OpenSkills contract
-  allowed_tools: [...]
+  tool_ids: [...]
   plan: [...]
   evidence: { required: [...] }
   finalization: { ... }
@@ -48,18 +48,29 @@ Files without a `constraints` block are valid OpenSkills files -- they simply ha
 | `openskills` | string | yes | Spec version. Must be `"1.0"` for this version. |
 | `name` | string | yes | Unique skill identifier (kebab-case recommended). |
 | `description` | string | yes | One-line human-readable summary. |
-| `triggers` | list of strings | no | Keywords that help an orchestrator select this skill. |
+| `triggers` | list of strings | no | Keywords that help an orchestrator select this skill. Prefer `activation.triggers` for new contracts. |
+| `activation` | object | no | How the skill should be invoked. See below. |
 | `constraints` | object | no | The enforcement contract. See below. |
+
+### `activation`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `triggers` | list of strings | no | Keywords for automatic selection. |
+| `slash_command` | string | no | Explicit invocation name (e.g. `/investigate`). |
+| `attachment_types` | list of strings | no | Data-driven activation by attachment type (e.g. `alert`, `case`). |
+| `auto_discover` | boolean | no | Whether the orchestrator may select this skill automatically. Default: `true`. |
 
 ### `constraints`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `allowed_tools` | list of strings | no | Tool names the agent may call. If present, calls to unlisted tools are rejected. If absent, all tools are allowed. |
+| `tool_ids` | list of strings | no | Tool names the agent may call. If present, calls to unlisted tools are rejected. If absent, all tools are allowed. |
 | `plan` | list of PlanStep | no | Ordered steps the agent should execute before free-form investigation. |
 | `evidence` | object | no | Evidence requirements for finalization. |
 | `finalization` | object | no | Rules governing when the agent may produce its final output. |
 | `tool_overrides` | map (string -> string) | no | Alias mapping: keys are legacy/generic names, values are actual tool names. |
+| `referenced_content` | list of ReferencedContent | no | Named supplementary content blocks the agent can read selectively. |
 
 ### PlanStep
 
@@ -67,7 +78,7 @@ Each entry in `constraints.plan`:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `tool` | string | yes | Tool name to invoke. Must appear in `allowed_tools` if that list is defined. |
+| `tool` | string | yes | Tool name to invoke. Must appear in `tool_ids` if that list is defined. |
 | `description` | string | yes | Human-readable explanation of what this step does. |
 | `args_template` | object | no | Pre-filled arguments. May contain `{{variable}}` placeholders for runtime interpolation. |
 
@@ -84,6 +95,17 @@ Each entry in `constraints.plan`:
 | `id` | string | yes | Machine-readable identifier (snake_case). |
 | `description` | string | yes | Human-readable explanation of what constitutes this evidence. |
 
+### ReferencedContent
+
+Each entry in `constraints.referenced_content`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Unique name for this content block. |
+| `path` | string | no | Relative path hint (e.g. `./queries`). Used by adapters to generate references. |
+| `content` | string | no | Inline Markdown content. |
+| `required` | boolean | no | If `true`, the agent must consult this block before finalizing. Default: `false`. |
+
 ### `constraints.finalization`
 
 | Field | Type | Required | Description |
@@ -96,8 +118,8 @@ Each entry in `constraints.plan`:
 A valid OpenSkills contract must satisfy:
 
 1. **Schema conformance**: All fields match the types specified above and in `openskills-schema.json`.
-2. **Plan-tools consistency**: Every `tool` in `plan` steps must appear in `allowed_tools` (when `allowed_tools` is defined).
-3. **Tool-overrides consistency**: Every value in `tool_overrides` must appear in `allowed_tools` (when `allowed_tools` is defined).
+2. **Plan-tools consistency**: Every `tool` in `plan` steps must appear in `tool_ids` (when `tool_ids` is defined).
+3. **Tool-overrides consistency**: Every value in `tool_overrides` must appear in `tool_ids` (when `tool_ids` is defined).
 4. **Evidence ID uniqueness**: No duplicate `id` values within `evidence.required`.
 5. **Non-negative iterations**: `finalization.min_iterations` must be >= 0.
 

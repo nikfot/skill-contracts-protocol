@@ -8,7 +8,7 @@ triggers:
   - disk pressure
   - pid pressure
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - kubectl_get
     - generate_report

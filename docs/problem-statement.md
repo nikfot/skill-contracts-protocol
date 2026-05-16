@@ -66,7 +66,7 @@ description: Investigate service latency spikes.
 tools: [Bash, Read]
 triggers: [latency, slo burn]
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - generate_report
   evidence:
@@ -126,7 +126,7 @@ The agent calls tools you didn't intend. Maybe it tries to
 `delete_pod` instead of `get_pod`, or calls a tool that modifies state
 during a read-only investigation.
 
-**OpenSkills fix:** `allowed_tools` is a whitelist. Calls to unlisted
+**OpenSkills fix:** `tool_ids` is a whitelist. Calls to unlisted
 tools are blocked before execution.
 
 ### 3. Step Skipping

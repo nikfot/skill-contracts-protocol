@@ -62,7 +62,7 @@ def main() -> None:
     print("# Parsed as OpenSkills contract:")
     print(f"#   Name: {contract.name}")
     print(f"#   Description: {contract.description}")
-    print(f"#   Allowed tools: {contract.allowed_tools}")
+    print(f"#   Tool IDs: {contract.tool_ids}")
     print()
 
     data = contract.model_dump(exclude_none=True, exclude={"content"})

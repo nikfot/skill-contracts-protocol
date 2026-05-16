@@ -33,8 +33,8 @@ def build_system_prompt(contract: SkillContract, include_plan: bool = True) -> s
 
     sections.append("")
 
-    if contract.allowed_tools is not None:
-        tools_str = ", ".join(sorted(contract.allowed_tools))
+    if contract.tool_ids is not None:
+        tools_str = ", ".join(sorted(contract.tool_ids))
         sections.append(f"### Allowed Tools\nYou may ONLY use these tools: {tools_str}")
         sections.append("Any tool call not in this list must be rejected.")
         sections.append("")
@@ -54,6 +54,19 @@ def build_system_prompt(contract: SkillContract, include_plan: bool = True) -> s
             if step.args_template:
                 line += f" (args: `{step.args_template}`)"
             sections.append(line)
+        sections.append("")
+
+    if contract.referenced_content:
+        sections.append("### Referenced Content")
+        sections.append("The following supplementary content blocks are available:")
+        for ref in contract.referenced_content:
+            req_tag = " **(required)**" if ref.required else ""
+            path_tag = f" (`{ref.path}`)" if ref.path else ""
+            sections.append(f"- **{ref.name}**{path_tag}{req_tag}")
+        required_refs = [r for r in contract.referenced_content if r.required]
+        if required_refs:
+            sections.append("")
+            sections.append("You MUST consult the required content blocks before finalizing.")
         sections.append("")
 
     if contract.required_evidence:

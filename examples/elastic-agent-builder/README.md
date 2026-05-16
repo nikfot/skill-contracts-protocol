@@ -23,7 +23,7 @@ Take any OpenSkills-enhanced Cursor skill and deploy it to Kibana:
 python cursor_to_kibana.py ../cursor-ide/investigate-latency/SKILL.md
 ```
 
-This reads the YAML frontmatter, extracts `allowed_tools` → `tool_ids`,
+This reads the YAML frontmatter, extracts `tool_ids` → `tool_ids`,
 serialises the constraints as an enforcement preamble in the `content`
 field, and prints the JSON payload you'd send to
 `POST /api/agent_builder/skills`.
@@ -34,7 +34,7 @@ field, and prints the JSON payload you'd send to
 |----------------------|-------------------|-------|
 | `name` | `id`, `name` | Used as the skill identifier |
 | `description` | `description` | Triggers appended if present |
-| `constraints.allowed_tools` | `tool_ids` | Sorted alphabetically |
+| `constraints.tool_ids` | `tool_ids` | Sorted alphabetically |
 | `constraints.plan` | (injected into `content`) | Rendered as "Investigation Plan" |
 | `constraints.evidence` | (injected into `content`) | Rendered as "Required Evidence" |
 | `constraints.finalization` | (injected into `content`) | Rendered as "Finalization Rules" |
@@ -52,7 +52,7 @@ python kibana_to_cursor.py
 python kibana_to_cursor.py my-kibana-skill.json
 ```
 
-The script converts `tool_ids` → `constraints.allowed_tools` and
+The script converts `tool_ids` → `constraints.tool_ids` and
 preserves the `content` as the Markdown body. Plan steps, evidence, and
 finalization rules are not inferred from prose -- add them manually to
 get runtime enforcement.
@@ -61,7 +61,7 @@ get runtime enforcement.
 
 | Feature | Automatically converted | Needs manual addition |
 |---------|------------------------|-----------------------|
-| Tool whitelist | Yes (`tool_ids` → `allowed_tools`) | — |
+| Tool whitelist | Yes (`tool_ids` → `tool_ids`) | — |
 | Markdown instructions | Yes (`content` preserved) | — |
 | Plan steps | — | Yes (define `constraints.plan`) |
 | Evidence gates | — | Yes (define `constraints.evidence`) |

@@ -62,7 +62,7 @@ def from_elastic_payload(
     """Parse an Elastic Agent Builder skill payload into a ``SkillContract``.
 
     The resulting contract uses the payload's ``tool_ids`` as
-    ``allowed_tools`` and the ``content`` field as the Markdown body.
+    ``tool_ids`` and the ``content`` field as the Markdown body.
     Plan steps and evidence are not inferred from prose -- they must be
     added manually if enforcement is desired.
 
@@ -71,13 +71,13 @@ def from_elastic_payload(
         openskills_version: Spec version to stamp on the contract.
 
     Returns:
-        A ``SkillContract`` with ``allowed_tools`` populated from
-        ``tool_ids`` and the original ``content`` preserved.
+        A ``SkillContract`` with ``tool_ids`` populated from
+        the payload and the original ``content`` preserved.
     """
     tool_ids = payload.get("tool_ids") or []
     constraints: Constraints | None = None
     if tool_ids:
-        constraints = Constraints(allowed_tools=list(tool_ids))
+        constraints = Constraints(tool_ids=list(tool_ids))
 
     return SkillContract(
         openskills=openskills_version,
@@ -123,7 +123,7 @@ def _build_content(contract: SkillContract, inject_constraints: bool) -> str:
 
 
 def _extract_tool_ids(contract: SkillContract) -> list[str]:
-    """Collect tool IDs from ``allowed_tools``."""
-    if contract.allowed_tools is None:
+    """Collect tool IDs from the contract."""
+    if contract.tool_ids is None:
         return []
-    return sorted(contract.allowed_tools)
+    return sorted(contract.tool_ids)

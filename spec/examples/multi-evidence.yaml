@@ -8,7 +8,7 @@ triggers:
   - insufficient resources
   - pending pods
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - kubectl_get
     - read_knowledge

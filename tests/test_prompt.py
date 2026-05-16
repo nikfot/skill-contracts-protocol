@@ -28,7 +28,7 @@ class TestBuildSystemPrompt:
             name="full-skill",
             description="Full featured skill.",
             constraints=Constraints(
-                allowed_tools=["query", "report"],
+                tool_ids=["query", "report"],
                 plan=[
                     PlanStep(tool="query", description="Fetch data"),
                     PlanStep(tool="report", description="Generate report"),
@@ -70,13 +70,13 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt(contract, include_plan=False)
         assert "Investigation Plan" not in prompt
 
-    def test_allowed_tools_only(self) -> None:
+    def test_tool_ids_only(self) -> None:
         contract = SkillContract(
             openskills="1.0",
             name="tools-only",
             description="Just tools.",
             constraints=Constraints(
-                allowed_tools=["alpha", "beta"],
+                tool_ids=["alpha", "beta"],
             ),
         )
         prompt = build_system_prompt(contract)

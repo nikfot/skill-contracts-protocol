@@ -8,7 +8,7 @@ triggers:
   - p99
   - monitor.duration.us
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - read_skill
     - read_knowledge

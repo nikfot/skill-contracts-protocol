@@ -60,7 +60,7 @@ def main() -> None:
 
     print(f"Loaded skill: {contract.name}")
     print(f"  Description: {contract.description}")
-    print(f"  Allowed tools: {contract.allowed_tools}")
+    print(f"  Tool IDs: {contract.tool_ids}")
     print(f"  Plan steps: {len(contract.plan_steps)}")
     print(f"  Required evidence: {[e.id for e in contract.required_evidence]}")
     print()

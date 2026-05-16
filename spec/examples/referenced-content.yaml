@@ -1,0 +1,40 @@
+---
+openskills: "1.0"
+name: log-triage-with-refs
+description: Triage log errors with example queries and OS-specific guidance.
+constraints:
+  tool_ids:
+    - run_es_query
+    - generate_report
+  referenced_content:
+    - name: queries
+      path: ./queries
+      content: |
+        # Example Queries
+
+        ## Recent errors by service
+        ```esql
+        FROM logs-* | WHERE log.level == "error"
+          | STATS count = COUNT(*) BY service.name
+          | SORT count DESC | LIMIT 10
+        ```
+      required: false
+    - name: linux-specifics
+      path: ./linux
+      content: |
+        # Linux-Specific Log Paths
+
+        - Application logs: /var/log/app/*.log
+        - System logs: /var/log/syslog
+      required: true
+  evidence:
+    required:
+      - id: error_distribution
+        description: Errors are grouped by service.
+  finalization:
+    require_all_evidence: true
+---
+
+# Log Triage with References
+
+Triage application log errors using example queries and OS-specific guidance.

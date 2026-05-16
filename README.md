@@ -17,7 +17,7 @@ name: investigate-latency
 description: Investigate service latency spikes
 triggers: [latency, slo burn, p99]
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - generate_report
   plan:
@@ -82,7 +82,7 @@ for step in planner:
 |--------|---------|
 | `openskills.models` | Pydantic models: `SkillContract`, `Evidence`, `QueryStep`, `FinalizationRules` |
 | `openskills.loader` | Parse SKILL.md YAML frontmatter into `SkillContract` |
-| `openskills.validator` | Referential integrity checks (allowed_tools vs plan steps) |
+| `openskills.validator` | Referential integrity checks (tool_ids vs plan steps) |
 | `openskills.cli` | CLI: `openskills validate <file\|dir>` |
 | `openskills.runtime` | Enforcement engine: `SkillEnforcer`, `EvidenceTracker`, `PlanExecutor` |
 | `openskills.adapters` | System-prompt builder from `SkillContract` |

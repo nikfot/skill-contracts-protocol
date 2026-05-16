@@ -26,17 +26,21 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
       "uniqueItems": true,
-      "description": "Keywords for skill selection."
+      "description": "Keywords for skill selection (legacy, prefer activation.triggers)."
+    },
+    "activation": {
+      "$ref": "#/$defs/Activation",
+      "description": "How the skill should be invoked."
     },
     "constraints": {
       "type": "object",
       "description": "The enforcement contract.",
       "properties": {
-        "allowed_tools": {
+        "tool_ids": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "uniqueItems": true,
-          "description": "Tool names the agent may call."
+          "description": "Tool names the agent may call. If present, calls to unlisted tools are rejected."
         },
         "plan": {
           "type": "array",
@@ -77,6 +81,11 @@
           "type": "object",
           "additionalProperties": { "type": "string", "minLength": 1 },
           "description": "Alias mapping: legacy tool name -> actual tool name."
+        },
+        "referenced_content": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ReferencedContent" },
+          "description": "Named supplementary content blocks the agent can read selectively."
         }
       },
       "additionalProperties": false
@@ -84,6 +93,34 @@
   },
   "additionalProperties": true,
   "$defs": {
+    "Activation": {
+      "type": "object",
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Keywords for automatic skill selection."
+        },
+        "slash_command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Explicit invocation name (e.g. /investigate)."
+        },
+        "attachment_types": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Data-driven activation by attachment type."
+        },
+        "auto_discover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the orchestrator may select this skill automatically."
+        }
+      },
+      "additionalProperties": false
+    },
     "PlanStep": {
       "type": "object",
       "required": ["tool", "description"],
@@ -119,6 +156,31 @@
           "type": "string",
           "minLength": 1,
           "description": "What constitutes this evidence."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReferencedContent": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique name for this content block."
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path hint (e.g. ./queries)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Inline Markdown content."
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, the agent must consult this block before finalizing."
         }
       },
       "additionalProperties": false
