@@ -5,6 +5,7 @@ from pathlib import Path
 from openskills import load_skill
 from openskills.adapters.elastic import from_elastic_payload, to_elastic_payload
 from openskills.models import (
+    Activation,
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
@@ -21,7 +22,7 @@ def _full_contract() -> SkillContract:
         openskills="1.0",
         name="investigate-latency",
         description="Investigate service latency spikes.",
-        triggers=["latency", "p99"],
+        activation=Activation(triggers=["latency", "p99"]),
         constraints=Constraints(
             tool_ids=["platform.core.execute_esql", "platform.core.search"],
             plan=[
@@ -92,10 +93,10 @@ class TestToElasticPayload:
         payload = to_elastic_payload(contract)
         assert len(payload["description"]) <= 1024
 
-    def test_no_triggers(self) -> None:
+    def test_no_activation(self) -> None:
         contract = SkillContract(
             openskills="1.0",
-            name="no-triggers",
+            name="no-activation",
             description="Plain description.",
         )
         payload = to_elastic_payload(contract)

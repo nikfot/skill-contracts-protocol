@@ -78,28 +78,46 @@ class Activation(BaseModel):
 
 
 class SkillContract(BaseModel):
-    """A fully parsed OpenSkills v1.0 skill contract."""
+    """A fully parsed OpenSkills v1.0 skill contract.
+
+    Activation semantics (exclusive model):
+    - No ``activation`` block: the skill is always discoverable and can be
+      selected freely by the orchestrator.
+    - ``activation`` present: the skill is invocable **only** through the
+      declared routes (triggers, slash_command, attachment_types).
+      ``auto_discover`` controls whether the orchestrator may *also* select
+      it outside those explicit routes.
+    """
 
     openskills: str = Field(pattern=r"^1\.0$")
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
-    triggers: list[str] | None = None
     activation: Activation | None = None
     constraints: Constraints | None = None
     content: str = Field(default="", description="Markdown body after frontmatter.")
 
     @property
     def effective_triggers(self) -> list[str]:
-        """Merged trigger list from both top-level ``triggers`` and ``activation.triggers``."""
-        top = self.triggers or []
-        act = (self.activation.triggers or []) if self.activation else []
-        seen: set[str] = set()
-        merged: list[str] = []
-        for t in top + act:
-            if t not in seen:
-                merged.append(t)
-                seen.add(t)
-        return merged
+        """Trigger keywords from ``activation.triggers``, empty if no activation."""
+        if self.activation and self.activation.triggers:
+            return list(self.activation.triggers)
+        return []
+
+    @property
+    def is_always_discoverable(self) -> bool:
+        """True when no activation block is set -- skill can always be selected."""
+        return self.activation is None
+
+    @property
+    def is_auto_discoverable(self) -> bool:
+        """Whether the orchestrator may select this skill outside explicit routes.
+
+        Always true when no activation is set. When activation is present,
+        delegates to ``activation.auto_discover``.
+        """
+        if self.activation is None:
+            return True
+        return self.activation.auto_discover
 
     @property
     def tool_ids(self) -> set[str] | None:

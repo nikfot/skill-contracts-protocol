@@ -2,9 +2,10 @@
 openskills: "1.0"
 name: check-service-health
 description: Quick service health check using allowed tools and evidence gates only.
-triggers:
-  - service health
-  - uptime check
+activation:
+  triggers:
+    - service health
+    - uptime check
 constraints:
   tool_ids:
     - run_es_query

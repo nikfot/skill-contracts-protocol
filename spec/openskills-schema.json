@@ -22,15 +22,9 @@
       "minLength": 1,
       "description": "One-line human-readable summary."
     },
-    "triggers": {
-      "type": "array",
-      "items": { "type": "string", "minLength": 1 },
-      "uniqueItems": true,
-      "description": "Keywords for skill selection (legacy, prefer activation.triggers)."
-    },
     "activation": {
       "$ref": "#/$defs/Activation",
-      "description": "How the skill should be invoked."
+      "description": "Exclusive invocation routes. When absent the skill is always discoverable."
     },
     "constraints": {
       "type": "object",

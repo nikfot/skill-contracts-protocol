@@ -2,10 +2,11 @@
 openskills: "1.0"
 name: check-deployment-health
 description: Verify a deployment is healthy after rollout by checking pods, endpoints, and error rates.
-triggers:
-  - deployment health
-  - post-deploy check
-  - rollout verification
+activation:
+  triggers:
+    - deployment health
+    - post-deploy check
+    - rollout verification
 constraints:
   tool_ids:
     - kubectl_get

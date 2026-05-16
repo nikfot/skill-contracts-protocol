@@ -2,10 +2,11 @@
 openskills: "1.0"
 name: general-troubleshooting
 description: General-purpose troubleshooting with no enforcement constraints.
-triggers:
-  - troubleshoot
-  - debug
-  - investigate
+activation:
+  triggers:
+    - troubleshoot
+    - debug
+    - investigate
 ---
 
 # General Troubleshooting

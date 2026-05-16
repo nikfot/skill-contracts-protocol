@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from openskills.models import (
+    Activation,
     Constraints,
     EvidenceItem,
     EvidenceRequirements,
@@ -86,7 +87,7 @@ class TestSkillContract:
             openskills="1.0",
             name="full-skill",
             description="Full featured.",
-            triggers=["test"],
+            activation=Activation(triggers=["test"]),
             constraints=Constraints(
                 tool_ids=["tool_a", "tool_b"],
                 plan=[PlanStep(tool="tool_a", description="Step 1")],

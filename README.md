@@ -15,7 +15,8 @@ Add an `openskills` constraints block to any SKILL.md frontmatter:
 openskills: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes
-triggers: [latency, slo burn, p99]
+activation:
+  triggers: [latency, slo burn, p99]
 constraints:
   tool_ids:
     - run_es_query

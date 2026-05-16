@@ -95,8 +95,9 @@ def from_elastic_payload(
 def _build_description(contract: SkillContract) -> str:
     """Build the ``description`` field, folding triggers into the text."""
     desc = contract.description
-    if contract.triggers:
-        trigger_str = ", ".join(contract.triggers)
+    triggers = contract.effective_triggers
+    if triggers:
+        trigger_str = ", ".join(triggers)
         desc = f"{desc} Triggers: {trigger_str}."
     return desc[:1024]
 
