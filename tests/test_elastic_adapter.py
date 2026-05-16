@@ -1,5 +1,8 @@
 """Tests for openskills.adapters.elastic."""
 
+from pathlib import Path
+
+from openskills import load_skill
 from openskills.adapters.elastic import from_elastic_payload, to_elastic_payload
 from openskills.models import (
     Constraints,
@@ -9,6 +12,8 @@ from openskills.models import (
     PlanStep,
     SkillContract,
 )
+
+CURSOR_EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "cursor-ide" / "investigate-latency" / "SKILL.md"
 
 
 def _full_contract() -> SkillContract:
@@ -162,3 +167,37 @@ class TestRoundTrip:
         assert restored.name == original.name
         assert restored.allowed_tools == original.allowed_tools
         assert original.content in restored.content
+
+
+class TestCursorToKibanaSmoke:
+    """End-to-end smoke tests using the real Cursor IDE example."""
+
+    def test_cursor_skill_loads_and_converts(self) -> None:
+        if not CURSOR_EXAMPLE.exists():
+            import pytest
+            pytest.skip("Cursor example not found")
+
+        contract = load_skill(CURSOR_EXAMPLE)
+        payload = to_elastic_payload(contract, inject_constraints=True)
+
+        assert payload["id"] == "investigate-latency"
+        assert isinstance(payload["tool_ids"], list)
+        assert len(payload["tool_ids"]) > 0
+        assert "run_es_query" in payload["tool_ids"]
+        assert "Investigate Service Latency" in payload["content"]
+        assert "Allowed Tools" in payload["content"]
+        assert "Investigation Plan" in payload["content"]
+        assert "Required Evidence" in payload["content"]
+
+    def test_cursor_skill_round_trips_through_kibana(self) -> None:
+        if not CURSOR_EXAMPLE.exists():
+            import pytest
+            pytest.skip("Cursor example not found")
+
+        contract = load_skill(CURSOR_EXAMPLE)
+        payload = to_elastic_payload(contract, inject_constraints=False)
+        restored = from_elastic_payload(payload)
+
+        assert restored.name == contract.name
+        assert restored.allowed_tools == contract.allowed_tools
+        assert contract.content in restored.content
