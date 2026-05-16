@@ -18,7 +18,7 @@ openskills: "1.0"
 name: test-skill
 description: A test skill.
 constraints:
-  allowed_tools:
+  tool_ids:
     - tool_a
   evidence:
     required:
@@ -32,7 +32,7 @@ Body content here.
 """
         contract = load_skill_from_string(text)
         assert contract.name == "test-skill"
-        assert contract.allowed_tools == {"tool_a"}
+        assert contract.tool_ids == {"tool_a"}
         assert len(contract.required_evidence) == 1
         assert "Body content" in contract.content
 
@@ -68,7 +68,7 @@ class TestLoadSkillFromDict:
             "name": "api-skill",
             "description": "From API.",
             "constraints": {
-                "allowed_tools": ["query"],
+                "tool_ids": ["query"],
             },
         }
         contract = load_skill_from_dict(data, content="# From API")
@@ -87,8 +87,8 @@ class TestLoadSkillFromFile:
             pytest.skip("Example file not found")
         contract = load_skill(path)
         assert contract.name == "investigate-proxy-latency"
-        assert contract.allowed_tools is not None
-        assert "run_es_query" in contract.allowed_tools
+        assert contract.tool_ids is not None
+        assert "run_es_query" in contract.tool_ids
         assert len(contract.plan_steps) == 3
         assert len(contract.required_evidence) == 5
         assert contract.finalization.min_iterations == 1
@@ -125,3 +125,12 @@ class TestLoadSkillFromFile:
         contract = load_skill(path)
         assert len(contract.required_evidence) == 5
         assert contract.finalization.min_iterations == 2
+
+    def test_referenced_content_example(self) -> None:
+        path = EXAMPLES_DIR / "referenced-content.yaml"
+        if not path.exists():
+            pytest.skip("Example file not found")
+        contract = load_skill(path)
+        assert len(contract.referenced_content) == 2
+        assert contract.referenced_content[0].name == "queries"
+        assert contract.referenced_content[1].required is True

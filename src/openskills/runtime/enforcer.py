@@ -17,7 +17,7 @@ class SkillEnforcer:
     """Enforces a SkillContract at runtime.
 
     Responsibilities:
-    - Gate tool calls against allowed_tools
+    - Gate tool calls against tool_ids
     - Rewrite tool names via tool_overrides
     - Decide when the agent may finalize
     """
@@ -53,7 +53,7 @@ class SkillEnforcer:
                 tool_args=tool_args,
                 rewritten=rewritten,
                 blocked=True,
-                block_reason=f"Tool '{resolved}' is not in allowed_tools.",
+                block_reason=f"Tool '{resolved}' is not in tool_ids.",
             )
 
         return ToolRewrite(

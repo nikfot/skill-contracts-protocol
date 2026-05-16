@@ -7,7 +7,7 @@ triggers:
   - post-deploy check
   - rollout verification
 constraints:
-  allowed_tools:
+  tool_ids:
     - kubectl_get
     - run_es_query
     - generate_report

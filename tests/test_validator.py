@@ -5,6 +5,7 @@ from openskills.models import (
     EvidenceItem,
     EvidenceRequirements,
     PlanStep,
+    ReferencedContent,
     SkillContract,
 )
 from openskills.validator import validate_contract
@@ -17,7 +18,7 @@ class TestValidateContract:
             name="good",
             description="Valid.",
             constraints=Constraints(
-                allowed_tools=["tool_a", "tool_b"],
+                tool_ids=["tool_a", "tool_b"],
                 plan=[PlanStep(tool="tool_a", description="Step 1")],
                 evidence=EvidenceRequirements(
                     required=[EvidenceItem(id="data_ok", description="Data present")]
@@ -33,14 +34,14 @@ class TestValidateContract:
             name="bad-plan",
             description="Plan tool not allowed.",
             constraints=Constraints(
-                allowed_tools=["tool_a"],
+                tool_ids=["tool_a"],
                 plan=[PlanStep(tool="tool_b", description="Wrong tool")],
             ),
         )
         errors = validate_contract(contract)
         assert len(errors) == 1
         assert "tool_b" in errors[0]
-        assert "allowed_tools" in errors[0]
+        assert "tool_ids" in errors[0]
 
     def test_override_target_not_in_allowed(self) -> None:
         contract = SkillContract(
@@ -48,7 +49,7 @@ class TestValidateContract:
             name="bad-override",
             description="Override target not allowed.",
             constraints=Constraints(
-                allowed_tools=["tool_a"],
+                tool_ids=["tool_a"],
                 tool_overrides={"old": "tool_c"},
             ),
         )
@@ -56,11 +57,11 @@ class TestValidateContract:
         assert len(errors) == 1
         assert "tool_c" in errors[0]
 
-    def test_no_allowed_tools_skips_checks(self) -> None:
+    def test_no_tool_ids_skips_checks(self) -> None:
         contract = SkillContract(
             openskills="1.0",
             name="open",
-            description="No allowed_tools defined.",
+            description="No tool_ids defined.",
             constraints=Constraints(
                 plan=[PlanStep(tool="anything", description="Any tool ok")],
                 tool_overrides={"legacy": "whatever"},
@@ -76,13 +77,43 @@ class TestValidateContract:
         )
         assert validate_contract(contract) == []
 
+    def test_duplicate_referenced_content_names(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="dup-refs",
+            description="Duplicate ref names.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries"),
+                    ReferencedContent(name="queries"),
+                ]
+            ),
+        )
+        errors = validate_contract(contract)
+        assert len(errors) == 1
+        assert "queries" in errors[0]
+
+    def test_unique_referenced_content_names(self) -> None:
+        contract = SkillContract(
+            openskills="1.0",
+            name="unique-refs",
+            description="Unique ref names.",
+            constraints=Constraints(
+                referenced_content=[
+                    ReferencedContent(name="queries"),
+                    ReferencedContent(name="linux"),
+                ]
+            ),
+        )
+        assert validate_contract(contract) == []
+
     def test_multiple_errors(self) -> None:
         contract = SkillContract(
             openskills="1.0",
             name="multi-error",
             description="Multiple issues.",
             constraints=Constraints(
-                allowed_tools=["tool_a"],
+                tool_ids=["tool_a"],
                 plan=[
                     PlanStep(tool="bad_1", description="Bad 1"),
                     PlanStep(tool="bad_2", description="Bad 2"),

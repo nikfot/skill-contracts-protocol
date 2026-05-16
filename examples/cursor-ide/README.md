@@ -40,7 +40,7 @@ description: Investigate service latency spikes.
 tools: [Bash, Read]
 triggers: [latency, slo burn]
 constraints:
-  allowed_tools:
+  tool_ids:
     - run_es_query
     - generate_report
   plan:
@@ -97,7 +97,7 @@ openskills validate .cursor/skills/investigate-latency/SKILL.md
 
 | Aspect | Standard SKILL.md | OpenSkills SKILL.md |
 |--------|-------------------|---------------------|
-| Tool usage | Any tool available | Only `allowed_tools` |
+| Tool usage | Any tool available | Only `tool_ids` |
 | Investigation order | Agent decides | `plan` steps first, then free-form |
 | Completeness | Agent decides when done | Must collect all `evidence.required` |
 | Early termination | Can stop anytime | Blocked until `finalization` rules met |
