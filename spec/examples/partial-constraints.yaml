@@ -1,0 +1,27 @@
+---
+openskills: "1.0"
+name: check-service-health
+description: Quick service health check using allowed tools and evidence gates only.
+triggers:
+  - service health
+  - uptime check
+constraints:
+  allowed_tools:
+    - run_es_query
+    - read_knowledge
+  evidence:
+    required:
+      - id: service_reachable
+        description: Service responded to at least one health probe.
+      - id: error_rate_checked
+        description: Error rate is computed for the observation window.
+  finalization:
+    require_all_evidence: true
+---
+
+# Check Service Health
+
+A lightweight health check skill. No plan steps are defined -- the agent
+decides which queries to run, but can only use `run_es_query` and
+`read_knowledge`, and must prove the service is reachable and error rate
+is checked before finalizing.

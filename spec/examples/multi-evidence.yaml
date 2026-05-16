@@ -1,0 +1,49 @@
+---
+openskills: "1.0"
+name: investigate-cluster-autoscaler
+description: Investigate cluster autoscaler failures with multiple evidence requirements.
+triggers:
+  - autoscaler
+  - scale up failed
+  - insufficient resources
+  - pending pods
+constraints:
+  allowed_tools:
+    - run_es_query
+    - kubectl_get
+    - read_knowledge
+    - generate_report
+  plan:
+    - tool: run_es_query
+      description: Fetch autoscaler events in the target time window
+    - tool: kubectl_get
+      description: List pending pods
+    - tool: run_es_query
+      description: Check node pool capacity and utilization
+    - tool: run_es_query
+      description: Correlate autoscaler decisions with quota limits
+  evidence:
+    required:
+      - id: autoscaler_events_present
+        description: Cluster autoscaler events exist for the time window.
+      - id: pending_pods_identified
+        description: Pods in Pending state are listed with their scheduling constraints.
+      - id: capacity_utilization_checked
+        description: Node pool capacity vs current utilization is computed.
+      - id: quota_limits_checked
+        description: Cloud provider quota limits are compared against requested scale-up.
+      - id: root_cause_classified
+        description: Failure is classified as quota, scheduling, or configuration issue.
+  finalization:
+    require_all_evidence: true
+    min_iterations: 2
+---
+
+# Investigate Cluster Autoscaler
+
+This skill demonstrates a complex evidence requirement set. The agent must
+collect five distinct pieces of evidence and iterate at least twice before
+it is allowed to finalize.
+
+This is useful for investigations where a single query rarely tells the
+full story and the agent needs to correlate multiple data sources.
