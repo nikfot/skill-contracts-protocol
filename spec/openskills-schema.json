@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nikfot/openskills/spec/openskills-schema.json",
+  "title": "OpenSkills v1.0",
+  "description": "JSON Schema for OpenSkills declarative LLM agent skill contracts.",
+  "type": "object",
+  "required": ["openskills", "name", "description"],
+  "properties": {
+    "openskills": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Specification version."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Unique skill identifier (kebab-case recommended)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-line human-readable summary."
+    },
+    "triggers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Keywords for skill selection."
+    },
+    "constraints": {
+      "type": "object",
+      "description": "The enforcement contract.",
+      "properties": {
+        "allowed_tools": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Tool names the agent may call."
+        },
+        "plan": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PlanStep" },
+          "description": "Ordered steps the agent should execute."
+        },
+        "evidence": {
+          "type": "object",
+          "required": ["required"],
+          "properties": {
+            "required": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/EvidenceItem" },
+              "minItems": 1,
+              "description": "Evidence the agent must collect before finalization."
+            }
+          },
+          "additionalProperties": false
+        },
+        "finalization": {
+          "type": "object",
+          "properties": {
+            "require_all_evidence": {
+              "type": "boolean",
+              "default": true,
+              "description": "If true, all required evidence must be collected."
+            },
+            "min_iterations": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "description": "Minimum tool-call iterations before finalization."
+            }
+          },
+          "additionalProperties": false
+        },
+        "tool_overrides": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 },
+          "description": "Alias mapping: legacy tool name -> actual tool name."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "PlanStep": {
+      "type": "object",
+      "required": ["tool", "description"],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Tool name to invoke."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What this step does."
+        },
+        "args_template": {
+          "type": "object",
+          "description": "Pre-filled arguments with optional {{variable}} placeholders."
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceItem": {
+      "type": "object",
+      "required": ["id", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Machine-readable identifier (snake_case)."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What constitutes this evidence."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

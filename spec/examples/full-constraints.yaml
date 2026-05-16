@@ -1,0 +1,67 @@
+---
+openskills: "1.0"
+name: investigate-proxy-latency
+description: Investigate proxy latency SLO burn alerts using service-first inputs.
+triggers:
+  - proxy latency
+  - slo burn
+  - p99
+  - monitor.duration.us
+constraints:
+  allowed_tools:
+    - run_es_query
+    - read_skill
+    - read_knowledge
+    - generate_report
+  plan:
+    - tool: run_es_query
+      description: Fetch raw heartbeat data for the target service domain
+      args_template:
+        query_type: esql
+        index_pattern: "heartbeat-*"
+        query: "FROM heartbeat-* | WHERE url.domain == '{{service_domain}}' | LIMIT 200"
+        timeout_seconds: 30
+    - tool: run_es_query
+      description: Compute latency percentiles over the alert window
+      args_template:
+        query_type: esql
+        index_pattern: "heartbeat-*"
+        query: "FROM heartbeat-* | WHERE url.domain == '{{service_domain}}' | STATS total=count(*), p95=percentile(http.rtt.total.us,95), p99=percentile(http.rtt.total.us,99)"
+    - tool: run_es_query
+      description: Status code distribution
+      args_template:
+        query_type: esql
+        index_pattern: "heartbeat-*"
+        query: "FROM heartbeat-* | WHERE url.domain == '{{service_domain}}' | STATS total=count(*) BY http.response.status_code | SORT total DESC | LIMIT 20"
+  evidence:
+    required:
+      - id: data_presence
+        description: Data exists for the target service and time window.
+      - id: latency_distribution
+        description: Percentile-based latency distribution is computed.
+      - id: status_correlation
+        description: Latency is correlated with status/uptime outcomes.
+      - id: path_decomposition
+        description: Component RTT signals are analyzed.
+      - id: dimensional_concentration
+        description: Concentration is checked across available dimensions.
+  finalization:
+    require_all_evidence: true
+    min_iterations: 1
+  tool_overrides:
+    investigation_setup: run_es_query
+    runner_search: run_es_query
+---
+
+# Investigate Proxy Latency
+
+This skill guides the investigation of proxy latency SLO burn rate alerts.
+
+## Investigation flow
+
+1. Verify data exists for the target domain
+2. Compute latency percentiles over the alert window
+3. Analyze error rates and status code distribution
+4. Decompose latency by network path component (DNS, TCP, TLS, header)
+5. Check dimensional concentration (region, CSP, AZ, monitor)
+6. Generate report

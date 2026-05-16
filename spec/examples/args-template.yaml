@@ -1,0 +1,51 @@
+---
+openskills: "1.0"
+name: investigate-node-pressure
+description: Investigate Kubernetes node pressure conditions using parameterized queries.
+triggers:
+  - node pressure
+  - memory pressure
+  - disk pressure
+  - pid pressure
+constraints:
+  allowed_tools:
+    - run_es_query
+    - kubectl_get
+    - generate_report
+  plan:
+    - tool: run_es_query
+      description: Fetch node condition events for the target node
+      args_template:
+        query_type: esql
+        index_pattern: "kubernetes-*"
+        query: "FROM kubernetes-* | WHERE kubernetes.node.name == '{{node_name}}' AND @timestamp >= '{{start_time}}' | SORT @timestamp DESC | LIMIT 500"
+        timeout_seconds: 30
+    - tool: kubectl_get
+      description: Get current node status
+      args_template:
+        resource: "node/{{node_name}}"
+        output: json
+    - tool: run_es_query
+      description: Check pod eviction events
+      args_template:
+        query_type: esql
+        index_pattern: "kubernetes-*"
+        query: "FROM kubernetes-* | WHERE kubernetes.node.name == '{{node_name}}' AND event.reason == 'Evicted' | STATS evictions=count(*) BY kubernetes.namespace"
+  evidence:
+    required:
+      - id: node_conditions_fetched
+        description: Node condition events are retrieved for the time window.
+      - id: current_status_checked
+        description: Current node status is inspected via kubectl.
+  finalization:
+    require_all_evidence: true
+    min_iterations: 1
+---
+
+# Investigate Node Pressure
+
+This skill demonstrates `args_template` with `{{variable}}` placeholders.
+The runtime resolves `{{node_name}}` and `{{start_time}}` from context
+before executing each plan step.
+
+Unresolved placeholders cause a validation error at runtime.
