@@ -1,0 +1,55 @@
+---
+openskills: "1.0"
+name: check-deployment-health
+description: Verify a deployment is healthy after rollout by checking pods, endpoints, and error rates.
+triggers:
+  - deployment health
+  - post-deploy check
+  - rollout verification
+constraints:
+  allowed_tools:
+    - kubectl_get
+    - run_es_query
+    - generate_report
+  plan:
+    - tool: kubectl_get
+      description: Check deployment rollout status
+      args_template:
+        resource: "deployment/{{deployment_name}}"
+        namespace: "{{namespace}}"
+        output: json
+    - tool: kubectl_get
+      description: List pods and their status
+      args_template:
+        resource: pods
+        namespace: "{{namespace}}"
+        selector: "app={{app_label}}"
+        output: json
+    - tool: run_es_query
+      description: Query error rate in the observation window
+      args_template:
+        query_type: esql
+        query: "FROM logs-* | WHERE kubernetes.deployment.name == '{{deployment_name}}' AND log.level == 'ERROR' AND @timestamp >= '{{start_time}}' | STATS error_count=COUNT(*)"
+  evidence:
+    required:
+      - id: rollout_status
+        description: Deployment rollout status is confirmed (complete or progressing).
+      - id: pods_healthy
+        description: All expected pods are in Running/Ready state.
+      - id: error_rate_checked
+        description: Post-deployment error rate is measured and within acceptable bounds.
+  finalization:
+    require_all_evidence: true
+    min_iterations: 1
+  tool_overrides:
+    k8s_query: kubectl_get
+---
+
+# Check Deployment Health
+
+Verify a Kubernetes deployment is healthy after rollout by checking:
+1. Rollout status (complete vs progressing vs failed)
+2. Pod health (Running, Ready, restart counts)
+3. Application error rate post-deploy
+
+Use this after any production deployment to confirm the release is stable.
