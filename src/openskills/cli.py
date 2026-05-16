@@ -1,14 +1,16 @@
-"""CLI entry point: openskills validate <file|dir>."""
+"""CLI entry point: openskills validate/convert."""
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 import click
 import frontmatter
+import yaml
 
-from .loader import load_skill_from_string
+from .loader import load_skill
 from .schema import validate_against_schema
 from .validator import validate_contract
 
@@ -36,8 +38,18 @@ def validate(paths: tuple[str, ...]) -> None:
 
     for path in sorted(files):
         text = path.read_text(encoding="utf-8")
-        post = frontmatter.loads(text)
-        metadata = dict(post.metadata)
+
+        if path.suffix == ".json":
+            try:
+                metadata = json.loads(text)
+            except json.JSONDecodeError as exc:
+                click.echo(f"\n{path}:")
+                click.echo(f"  - JSON parse error: {exc}")
+                total_errors += 1
+                continue
+        else:
+            post = frontmatter.loads(text)
+            metadata = dict(post.metadata)
 
         if "openskills" not in metadata:
             continue
@@ -50,7 +62,7 @@ def validate(paths: tuple[str, ...]) -> None:
 
         if not schema_errors:
             try:
-                contract = load_skill_from_string(text)
+                contract = load_skill(path)
                 ref_errors = validate_contract(contract)
                 file_errors.extend(ref_errors)
             except Exception as exc:
@@ -68,9 +80,44 @@ def validate(paths: tuple[str, ...]) -> None:
     sys.exit(1 if total_errors > 0 else 0)
 
 
+@main.command()
+@click.argument("input_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path())
+def convert(input_path: str, output_path: str) -> None:
+    """Convert a skill between YAML/Markdown and JSON formats.
+
+    The output format is inferred from the output file extension:
+    - .json -> serialize as JSON
+    - .md   -> serialize as SKILL.md with YAML frontmatter
+    - .yaml/.yml -> serialize as plain YAML
+    """
+    contract = load_skill(input_path)
+    out = Path(output_path)
+
+    if out.suffix == ".json":
+        data = contract.model_dump(exclude_none=True, exclude={"content"})
+        if contract.content:
+            data["content"] = contract.content
+        out.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    elif out.suffix == ".md":
+        data = contract.model_dump(exclude_none=True, exclude={"content"})
+        fm = yaml.dump(data, default_flow_style=False, sort_keys=False).strip()
+        body = contract.content or ""
+        out.write_text(f"---\n{fm}\n---\n\n{body}\n", encoding="utf-8")
+    elif out.suffix in {".yaml", ".yml"}:
+        data = contract.model_dump(exclude_none=True, exclude={"content"})
+        text = yaml.dump(data, default_flow_style=False, sort_keys=False)
+        out.write_text(f"---\n{text}---\n", encoding="utf-8")
+    else:
+        click.echo(f"Unsupported output format: {out.suffix}", err=True)
+        sys.exit(1)
+
+    click.echo(f"Converted {input_path} -> {output_path}")
+
+
 def _collect_files(paths: tuple[str, ...]) -> list[Path]:
     """Expand directories and filter to supported file types."""
-    suffixes = {".yaml", ".yml", ".md"}
+    suffixes = {".yaml", ".yml", ".md", ".json"}
     result: list[Path] = []
     for p in paths:
         path = Path(p)

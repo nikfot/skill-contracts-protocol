@@ -2,7 +2,7 @@
 
 __version__ = "0.1.0"
 
-from .loader import load_skill, load_skill_from_dict, load_skill_from_string
+from .loader import load_skill, load_skill_from_dict, load_skill_from_json, load_skill_from_string
 from .models import (
     Constraints,
     EvidenceItem,
@@ -21,5 +21,6 @@ __all__ = [
     "SkillContract",
     "load_skill",
     "load_skill_from_dict",
+    "load_skill_from_json",
     "load_skill_from_string",
 ]
