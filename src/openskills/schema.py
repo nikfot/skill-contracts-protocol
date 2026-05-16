@@ -9,7 +9,6 @@ from typing import Any
 
 import jsonschema
 
-
 _SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "spec" / "openskills-schema.json"
 
 
