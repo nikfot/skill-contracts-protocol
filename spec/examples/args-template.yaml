@@ -2,11 +2,12 @@
 openskills: "1.0"
 name: investigate-node-pressure
 description: Investigate Kubernetes node pressure conditions using parameterized queries.
-triggers:
-  - node pressure
-  - memory pressure
-  - disk pressure
-  - pid pressure
+activation:
+  triggers:
+    - node pressure
+    - memory pressure
+    - disk pressure
+    - pid pressure
 constraints:
   tool_ids:
     - run_es_query

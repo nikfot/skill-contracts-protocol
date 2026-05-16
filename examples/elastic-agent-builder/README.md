@@ -33,7 +33,7 @@ field, and prints the JSON payload you'd send to
 | Cursor SKILL.md field | Elastic API field | Notes |
 |----------------------|-------------------|-------|
 | `name` | `id`, `name` | Used as the skill identifier |
-| `description` | `description` | Triggers appended if present |
+| `description` | `description` | `activation.triggers` appended if present |
 | `constraints.tool_ids` | `tool_ids` | Sorted alphabetically |
 | `constraints.plan` | (injected into `content`) | Rendered as "Investigation Plan" |
 | `constraints.evidence` | (injected into `content`) | Rendered as "Required Evidence" |

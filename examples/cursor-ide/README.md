@@ -13,7 +13,6 @@ A typical Cursor skill is free-form markdown with minimal frontmatter:
 name: investigate-latency
 description: Investigate service latency spikes.
 tools: [Bash, Read]
-triggers: [latency, slo burn]
 ---
 
 # Investigate Latency
@@ -38,7 +37,8 @@ openskills: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes.
 tools: [Bash, Read]
-triggers: [latency, slo burn]
+activation:
+  triggers: [latency, slo burn]
 constraints:
   tool_ids:
     - run_es_query

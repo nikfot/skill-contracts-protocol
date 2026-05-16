@@ -2,11 +2,12 @@
 openskills: "1.0"
 name: investigate-proxy-latency
 description: Investigate proxy latency SLO burn alerts using service-first inputs.
-triggers:
-  - proxy latency
-  - slo burn
-  - p99
-  - monitor.duration.us
+activation:
+  triggers:
+    - proxy latency
+    - slo burn
+    - p99
+    - monitor.duration.us
 constraints:
   tool_ids:
     - run_es_query

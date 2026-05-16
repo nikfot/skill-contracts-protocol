@@ -2,11 +2,12 @@
 openskills: "1.0"
 name: investigate-cluster-autoscaler
 description: Investigate cluster autoscaler failures with multiple evidence requirements.
-triggers:
-  - autoscaler
-  - scale up failed
-  - insufficient resources
-  - pending pods
+activation:
+  triggers:
+    - autoscaler
+    - scale up failed
+    - insufficient resources
+    - pending pods
 constraints:
   tool_ids:
     - run_es_query

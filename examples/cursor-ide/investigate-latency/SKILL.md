@@ -3,7 +3,8 @@ openskills: "1.0"
 name: investigate-latency
 description: Investigate service latency spikes using structured evidence collection.
 tools: [Bash, Read]
-triggers: [latency, slo burn, p99, high response time]
+activation:
+  triggers: [latency, slo burn, p99, high response time]
 constraints:
   tool_ids:
     - run_es_query

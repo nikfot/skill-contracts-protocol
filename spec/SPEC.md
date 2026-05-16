@@ -21,7 +21,9 @@ A SKILL.md file with OpenSkills constraints uses standard YAML frontmatter delim
 openskills: "1.0"
 name: <string>            # required
 description: <string>     # required
-triggers: [<string>, ...] # optional, keywords for skill selection
+activation:               # optional, exclusive invocation routes
+  triggers: [...]
+  slash_command: <string>
 constraints:              # optional, the OpenSkills contract
   tool_ids: [...]
   plan: [...]
@@ -48,18 +50,21 @@ Files without a `constraints` block are valid OpenSkills files -- they simply ha
 | `openskills` | string | yes | Spec version. Must be `"1.0"` for this version. |
 | `name` | string | yes | Unique skill identifier (kebab-case recommended). |
 | `description` | string | yes | One-line human-readable summary. |
-| `triggers` | list of strings | no | Keywords that help an orchestrator select this skill. Prefer `activation.triggers` for new contracts. |
-| `activation` | object | no | How the skill should be invoked. See below. |
+| `activation` | object | no | Exclusive invocation routes. When absent the skill is always discoverable. When present the skill is invocable **only** through its declared routes. See below. |
 | `constraints` | object | no | The enforcement contract. See below. |
 
 ### `activation`
+
+When the `activation` block is **absent**, the skill is always discoverable -- any orchestrator may select it freely.
+
+When `activation` is **present**, the skill uses an **exclusive** activation model: it is invocable only through the routes declared in the block (triggers, slash command, attachment types). The `auto_discover` flag controls whether the orchestrator may *also* select it outside those explicit routes.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `triggers` | list of strings | no | Keywords for automatic selection. |
 | `slash_command` | string | no | Explicit invocation name (e.g. `/investigate`). |
 | `attachment_types` | list of strings | no | Data-driven activation by attachment type (e.g. `alert`, `case`). |
-| `auto_discover` | boolean | no | Whether the orchestrator may select this skill automatically. Default: `true`. |
+| `auto_discover` | boolean | no | Whether the orchestrator may *also* select this skill outside the explicit routes. Default: `true`. |
 
 ### `constraints`
 
