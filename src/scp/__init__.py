@@ -6,6 +6,8 @@ from .loader import load_skill, load_skill_from_dict, load_skill_from_json, load
 from .models import (
     Activation,
     Constraints,
+    EnforcementMode,
+    EvidenceDetectionRule,
     EvidenceItem,
     EvidenceRequirements,
     FinalizationRules,
@@ -16,6 +18,8 @@ from .models import (
 __all__ = [
     "Activation",
     "Constraints",
+    "EnforcementMode",
+    "EvidenceDetectionRule",
     "EvidenceItem",
     "EvidenceRequirements",
     "FinalizationRules",

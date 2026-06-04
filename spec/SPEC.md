@@ -71,6 +71,7 @@ When `activation` is **present**, the skill uses an **exclusive** activation mod
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `enforcement` | string | no | How strictly the contract is enforced: `strict` (reject violations), `soft` (warn + approve), `off` (pass-through). Default: `strict`. |
 | `tool_ids` | list of strings | no | Tool names the agent may call. If present, calls to unlisted tools are rejected. If absent, all tools are allowed. |
 | `plan` | list of PlanStep | no | Ordered steps the agent should execute before free-form investigation. |
 | `evidence` | object | no | Evidence requirements for finalization. |
@@ -88,6 +89,7 @@ Each entry in `constraints.plan`:
 | `description` | string | yes | Human-readable explanation of what this step does. |
 | `args_template` | object | no | Pre-filled arguments. May contain `{{variable}}` placeholders for runtime interpolation. |
 | `delegates` | string | no | Child skill name to delegate to at this step. Activates the child contract's `tool_ids` for the duration of the delegation. Must be listed in the top-level `delegates_to`. |
+| `requires_evidence` | list of strings | no | Evidence IDs that must be collected before this step's tool is allowed. Blocks the tool call until all listed evidence items are recorded. |
 
 ### `constraints.evidence`
 
@@ -201,6 +203,54 @@ When the enforcer pushes a delegation:
 - The child's `tool_ids` are unioned with the parent's
 - If the child has `tool_ids: null` (unconstrained), the merged set becomes unconstrained
 - Pop returns to the parent's original constraint set
+
+## Enforcement Modes
+
+The `constraints.enforcement` field controls how violations are handled at runtime:
+
+| Mode | Behaviour |
+|------|-----------|
+| `strict` | Reject the tool call with an error reason. The agent must comply. (Default) |
+| `soft` | Log a warning but approve the tool call. Useful for development/debugging. |
+| `off` | Pass-through — no enforcement. Useful for disabling SCP without removing the contract. |
+
+### Environment Variable Override
+
+The `SCP_MODE` environment variable overrides the contract's declared mode:
+
+```bash
+SCP_MODE=soft   # Downgrade all skills to soft mode
+SCP_MODE=off    # Disable enforcement entirely
+SCP_MODE=strict # Force strict even if contract says soft
+```
+
+This allows operators to tune enforcement without modifying skill files.
+
+## Plan Step Enforcement
+
+When a `constraints.plan` is present, the enforcer tracks step ordering:
+
+1. **Step order**: A tool matching step N+1 is blocked until step N's tool has been called.
+2. **Retries**: A tool matching a past (completed) step is always allowed.
+3. **Utility tools**: Tools not listed in any plan step pass through freely.
+4. **Auto-delegation**: When a step declares `delegates`, the child skill's tool_ids are pushed onto the enforcement stack upon reaching that step and popped when the next parent step fires.
+
+### Evidence-Gated Steps
+
+When a plan step declares `requires_evidence`, the step's tool is blocked until all listed evidence IDs have been collected (via post-tool detection rules):
+
+```yaml
+plan:
+  - tool: read_slack
+    description: Read the thread
+  - tool: post_reply
+    description: Post the summary
+    requires_evidence:
+      - thread_content
+      - alert_classification
+```
+
+This ensures the agent cannot produce output until prerequisite information has been gathered.
 
 ## Limitations
 

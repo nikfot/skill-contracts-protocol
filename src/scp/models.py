@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
+
+
+class EnforcementMode(str, Enum):
+    """How strictly the contract is enforced at runtime."""
+
+    strict = "strict"
+    soft = "soft"
+    off = "off"
 
 
 class EvidenceItem(BaseModel):
@@ -23,6 +32,13 @@ class PlanStep(BaseModel):
     delegates: str | None = Field(
         default=None,
         description="Child skill name to delegate to at this step. Activates the child contract's tool_ids.",
+    )
+    requires_evidence: list[str] | None = Field(
+        default=None,
+        description=(
+            "Evidence IDs that must be collected before this step's tool is allowed. "
+            "Blocks the tool call until all listed evidence items are recorded."
+        ),
     )
 
 
@@ -80,6 +96,10 @@ class ReferencedContent(BaseModel):
 class Constraints(BaseModel):
     """The enforcement contract for a skill."""
 
+    enforcement: EnforcementMode = Field(
+        default=EnforcementMode.strict,
+        description="How strictly the contract is enforced: strict (reject violations), soft (warn only), off (pass-through).",
+    )
     tool_ids: list[str] | None = None
     plan: list[PlanStep] | None = None
     evidence: EvidenceRequirements | None = None
@@ -126,6 +146,13 @@ class SkillContract(BaseModel):
         ),
     )
     content: str = Field(default="", description="Markdown body after frontmatter.")
+
+    @property
+    def enforcement_mode(self) -> EnforcementMode:
+        """Enforcement mode, defaults to strict."""
+        if self.constraints:
+            return self.constraints.enforcement
+        return EnforcementMode.strict
 
     @property
     def effective_triggers(self) -> list[str]:
