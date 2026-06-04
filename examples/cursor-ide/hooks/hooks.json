@@ -2,17 +2,17 @@
   "hooks": [
     {
       "event": "sessionStart",
-      "script": "python3 examples/cursor-ide/hooks/scp-session.py",
+      "script": "scp-hook sessionStart",
       "failClosed": false
     },
     {
       "event": "preToolUse",
-      "script": "python3 examples/cursor-ide/hooks/scp-enforcer.py",
+      "script": "scp-hook preToolUse",
       "failClosed": true
     },
     {
       "event": "postToolUse",
-      "script": "python3 examples/cursor-ide/hooks/scp-evidence.py",
+      "script": "scp-hook postToolUse",
       "failClosed": false
     }
   ]

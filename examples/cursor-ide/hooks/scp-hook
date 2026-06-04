@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# scp-hook -- portable wrapper for SCP Cursor IDE hooks.
+#
+# Resolves the SCP library location and skills directory, then
+# delegates to the appropriate Python hook handler.
+#
+# Environment variables (all optional, auto-detected if unset):
+#   SCP_HOME       - Path to skill-contracts-protocol repo checkout.
+#                    Default: ~/.local/share/scp
+#   SCP_SKILL_DIRS - Colon-separated skill directories to scan.
+#                    Default: ~/.cursor/skills
+#   SCP_PYTHON     - Python interpreter to use (must have scp installed).
+#                    Default: uses "uv run python" inside SCP_HOME.
+#
+# Usage in .cursor/hooks.json:
+#   "script": "scp-hook sessionStart"
+#   "script": "scp-hook preToolUse"
+#   "script": "scp-hook postToolUse"
+
+set -euo pipefail
+
+HOOK_TYPE="${1:-}"
+
+if [[ -z "$HOOK_TYPE" ]]; then
+  echo '{"decision": "approve"}' 
+  exit 0
+fi
+
+# Resolve SCP_HOME: check env, then common locations
+if [[ -z "${SCP_HOME:-}" ]]; then
+  for candidate in \
+    "$HOME/.local/share/scp" \
+    "$HOME/github/nikfot/skill-contracts-protocol" \
+    "$HOME/src/skill-contracts-protocol" \
+    "$HOME/.scp"; do
+    if [[ -f "$candidate/src/scp/adapters/cursor_hook.py" ]]; then
+      SCP_HOME="$candidate"
+      break
+    fi
+  done
+fi
+
+if [[ -z "${SCP_HOME:-}" || ! -d "${SCP_HOME:-}" ]]; then
+  # Cannot find SCP -- pass through silently
+  echo '{"decision": "approve"}'
+  exit 0
+fi
+
+# Resolve SCP_SKILL_DIRS
+export SCP_SKILL_DIRS="${SCP_SKILL_DIRS:-$HOME/.cursor/skills}"
+
+# Map hook type to script
+case "$HOOK_TYPE" in
+  sessionStart) SCRIPT="examples/cursor-ide/hooks/scp-session.py" ;;
+  preToolUse)   SCRIPT="examples/cursor-ide/hooks/scp-enforcer.py" ;;
+  postToolUse)  SCRIPT="examples/cursor-ide/hooks/scp-evidence.py" ;;
+  *)
+    echo '{"decision": "approve"}'
+    exit 0
+    ;;
+esac
+
+# Execute with the right Python
+cd "$SCP_HOME"
+
+if [[ -n "${SCP_PYTHON:-}" ]]; then
+  exec "$SCP_PYTHON" "$SCRIPT"
+elif command -v uv &>/dev/null; then
+  exec uv run python "$SCRIPT"
+elif [[ -f "$SCP_HOME/.venv/bin/python" ]]; then
+  exec "$SCP_HOME/.venv/bin/python" "$SCRIPT"
+else
+  # Last resort: system python (requires scp on PYTHONPATH)
+  export PYTHONPATH="${SCP_HOME}/src:${PYTHONPATH:-}"
+  exec python3 "$SCRIPT"
+fi

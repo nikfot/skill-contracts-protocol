@@ -33,42 +33,64 @@ Tool result → postToolUse hook → load state → check detection rules
 
 ## Installation
 
-### 1. Install the SCP library
+### Quick Start (recommended)
+
+1. Clone or download the SCP repo:
 
 ```bash
-pip install skill-contracts-protocol
-# or from source:
-pip install -e /path/to/skill-contracts-protocol
+git clone https://github.com/nikfot/skill-contracts-protocol.git ~/.local/share/scp
 ```
 
-### 2. Configure skill directories
-
-Set the `SCP_SKILL_DIRS` environment variable to point to directories containing SKILL.md files with SCP contracts:
+2. Put `scp-hook` on your PATH:
 
 ```bash
-export SCP_SKILL_DIRS="$HOME/.cursor/skills:$(pwd)/.cursor/skills"
+ln -sf ~/.local/share/scp/examples/cursor-ide/hooks/scp-hook ~/.local/bin/scp-hook
 ```
 
-### 3. Add hooks to your project
-
-Copy `hooks.json` to `.cursor/hooks.json` in your project (or merge with existing hooks):
+3. Copy `hooks.json` to any project you want SCP enforcement in:
 
 ```bash
-cp examples/cursor-ide/hooks/hooks.json /path/to/project/.cursor/hooks.json
+cp ~/.local/share/scp/examples/cursor-ide/hooks/hooks.json /path/to/project/.cursor/hooks.json
 ```
 
-Adjust the script paths in `hooks.json` to point to where the hook scripts are installed.
+That's it. The `scp-hook` script auto-detects:
+- **SCP library location** from `SCP_HOME` env var, or searches `~/.local/share/scp`, `~/github/nikfot/skill-contracts-protocol`, `~/src/skill-contracts-protocol`, `~/.scp`
+- **Skills directory** from `SCP_SKILL_DIRS` env var, or defaults to `~/.cursor/skills`
+- **Python runtime** using `uv run` (preferred), project `.venv`, or system Python with PYTHONPATH
 
-### 4. Alternative: Global installation via symlinks
+### Environment Variables (all optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCP_HOME` | Auto-detected | Path to the `skill-contracts-protocol` checkout |
+| `SCP_SKILL_DIRS` | `~/.cursor/skills` | Colon-separated dirs to scan for SKILL.md files |
+| `SCP_PYTHON` | Auto-detected | Python interpreter with `scp` installed |
+
+### Alternative: pip install
+
+If you prefer not to use `uv run`, install the library globally:
 
 ```bash
-# From the SCP repo root:
-HOOKS_DIR="$HOME/.cursor/hooks"
-mkdir -p "$HOOKS_DIR"
-ln -sf "$(pwd)/examples/cursor-ide/hooks/scp-enforcer.py" "$HOOKS_DIR/"
-ln -sf "$(pwd)/examples/cursor-ide/hooks/scp-evidence.py" "$HOOKS_DIR/"
-ln -sf "$(pwd)/examples/cursor-ide/hooks/scp-session.py" "$HOOKS_DIR/"
+pip install --user -e ~/.local/share/scp
+# Then set SCP_PYTHON to your system python:
+export SCP_PYTHON=python3
 ```
+
+### The hooks.json file
+
+The portable `hooks.json` uses a single dispatcher script:
+
+```json
+{
+  "hooks": [
+    { "event": "sessionStart", "script": "scp-hook sessionStart", "failClosed": false },
+    { "event": "preToolUse",   "script": "scp-hook preToolUse",   "failClosed": true },
+    { "event": "postToolUse",  "script": "scp-hook postToolUse",  "failClosed": false }
+  ]
+}
+```
+
+If `scp-hook` isn't on PATH, the hook fails open (approves everything) so it never blocks a session where SCP isn't installed.
 
 ## Evidence Detection
 
