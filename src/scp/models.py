@@ -20,12 +20,36 @@ class PlanStep(BaseModel):
     tool: str = Field(min_length=1)
     description: str = Field(min_length=1)
     args_template: dict[str, Any] | None = None
+    delegates: str | None = Field(
+        default=None,
+        description="Child skill name to delegate to at this step. Activates the child contract's tool_ids.",
+    )
+
+
+class EvidenceDetectionRule(BaseModel):
+    """Regex-based rule for deterministic evidence detection from tool outputs.
+
+    When a tool call matches ``tool_pattern`` (against the tool name) and
+    the tool result matches ``result_pattern`` (searched against the stringified
+    result), the corresponding evidence item is automatically marked as collected.
+    """
+
+    evidence_id: str = Field(min_length=1, description="ID of the evidence item this rule satisfies.")
+    tool_pattern: str = Field(min_length=1, description="Regex matched against the tool name.")
+    result_pattern: str | None = Field(
+        default=None,
+        description="Optional regex searched against the tool result. If omitted, tool match alone suffices.",
+    )
 
 
 class EvidenceRequirements(BaseModel):
     """Evidence the agent must collect before finalization."""
 
     required: list[EvidenceItem] = Field(min_length=1)
+    detection: list[EvidenceDetectionRule] | None = Field(
+        default=None,
+        description="Regex-based rules for automatic evidence detection from tool outputs.",
+    )
 
     @field_validator("required")
     @classmethod
@@ -94,6 +118,13 @@ class SkillContract(BaseModel):
     description: str = Field(min_length=1)
     activation: Activation | None = None
     constraints: Constraints | None = None
+    delegates_to: list[str] | None = Field(
+        default=None,
+        description=(
+            "Child skill names this skill may delegate to. "
+            "During delegation, the child's tool_ids are merged into the allowed set."
+        ),
+    )
     content: str = Field(default="", description="Markdown body after frontmatter.")
 
     @property

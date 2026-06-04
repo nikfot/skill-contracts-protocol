@@ -52,6 +52,7 @@ Files without a `constraints` block are valid SCP files -- they simply have no e
 | `description` | string | yes | One-line human-readable summary. |
 | `activation` | object | no | Exclusive invocation routes. When absent the skill is always discoverable. When present the skill is invocable **only** through its declared routes. See below. |
 | `constraints` | object | no | The enforcement contract. See below. |
+| `delegates_to` | list of strings | no | Child skill names this skill may delegate to. During delegation the child's `tool_ids` are merged into the parent's allowed set. |
 
 ### `activation`
 
@@ -86,12 +87,14 @@ Each entry in `constraints.plan`:
 | `tool` | string | yes | Tool name to invoke. Must appear in `tool_ids` if that list is defined. |
 | `description` | string | yes | Human-readable explanation of what this step does. |
 | `args_template` | object | no | Pre-filled arguments. May contain `{{variable}}` placeholders for runtime interpolation. |
+| `delegates` | string | no | Child skill name to delegate to at this step. Activates the child contract's `tool_ids` for the duration of the delegation. Must be listed in the top-level `delegates_to`. |
 
 ### `constraints.evidence`
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `required` | list of EvidenceItem | yes | Evidence the agent must collect before finalization. |
+| `detection` | list of EvidenceDetectionRule | no | Regex-based rules for automatic evidence detection from tool outputs. |
 
 ### EvidenceItem
 
@@ -99,6 +102,18 @@ Each entry in `constraints.plan`:
 |-------|------|----------|-------------|
 | `id` | string | yes | Machine-readable identifier (snake_case). |
 | `description` | string | yes | Human-readable explanation of what constitutes this evidence. |
+
+### EvidenceDetectionRule
+
+Each entry in `constraints.evidence.detection`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `evidence_id` | string | yes | ID matching a required evidence item in `evidence.required`. |
+| `tool_pattern` | regex string | yes | Python regex matched against the tool name (e.g. `^slack_get_thread$`). |
+| `result_pattern` | regex string | no | Python regex searched against the stringified tool result. If omitted, a tool name match alone satisfies the evidence. |
+
+Detection rules enable **deterministic** evidence tracking without relying on LLM reasoning. When a tool call matches `tool_pattern` and (optionally) the result matches `result_pattern`, the corresponding evidence item is automatically marked as collected.
 
 ### ReferencedContent
 
@@ -145,6 +160,65 @@ Placeholders are resolved at runtime by the agent framework. Unresolved placehol
 Files without the `scp` key are not SCP files. Parsers should ignore them gracefully.
 
 Files with `scp: "1.0"` but no `constraints` block are valid -- they declare participation in the protocol but impose no enforcement.
+
+## Delegation
+
+A skill may delegate to child skills using the `delegates_to` field. This enables a parent skill to temporarily expand its allowed tool set when invoking a child skill's workflow.
+
+### Semantics
+
+1. The parent contract declares `delegates_to: [child-skill-name, ...]`.
+2. Plan steps may reference a child via `delegates: child-skill-name`.
+3. When a delegation is active, the enforcer merges the child's `tool_ids` into the parent's allowed set.
+4. Multiple levels of delegation are supported (stack-based).
+5. The child contract must be loadable at runtime (file path resolved via skill directories).
+
+### Example
+
+```yaml
+scp: "1.0"
+name: slack-alert-reader
+delegates_to:
+  - ecp-traffic-alert-investigation
+constraints:
+  tool_ids:
+    - slack_get_thread
+    - slack_post_message
+    - slack_add_reaction
+  plan:
+    - tool: slack_get_thread
+      description: Read the alert thread
+    - tool: delegate
+      description: Investigate the alert
+      delegates: ecp-traffic-alert-investigation
+    - tool: slack_post_message
+      description: Post investigation results
+```
+
+### Contract Stacking
+
+When the enforcer pushes a delegation:
+- The child's `tool_ids` are unioned with the parent's
+- If the child has `tool_ids: null` (unconstrained), the merged set becomes unconstrained
+- Pop returns to the parent's original constraint set
+
+## Limitations
+
+### L1: Reasoning-Step Evidence
+
+Evidence items that require LLM reasoning (e.g., "correctly identified root cause", "proposed appropriate remediation") cannot be verified deterministically by external enforcement. These must remain as prose-based instructions in the skill's markdown body.
+
+Detection rules only work for evidence that is observable from tool I/O: tool names and their stringified results.
+
+### L2: Skill Activation Detection
+
+In hook-based enforcement (e.g., Cursor hooks), the system has limited visibility into which skill is currently active. Activation is inferred from:
+
+1. Slash commands in the initial user message (highest confidence)
+2. Keyword triggers matched against the user message
+3. Environment-provided skill path overrides
+
+If no activation signal is detected, hooks operate in **pass-through mode** (all tools allowed). This means enforcement is opt-in and requires clear invocation patterns.
 
 ## Schema
 

@@ -1,0 +1,19 @@
+{
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "script": "python3 examples/cursor-ide/hooks/scp-session.py",
+      "failClosed": false
+    },
+    {
+      "event": "preToolUse",
+      "script": "python3 examples/cursor-ide/hooks/scp-enforcer.py",
+      "failClosed": true
+    },
+    {
+      "event": "postToolUse",
+      "script": "python3 examples/cursor-ide/hooks/scp-evidence.py",
+      "failClosed": false
+    }
+  ]
+}
