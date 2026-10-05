@@ -516,8 +516,11 @@ class TestDelegateResolution:
             patch.dict(os.environ, {"SCP_MODE": "", "SCP_SKILL_DIRS": str(skills)}),
         ):
             result = handle_pre_tool_use({"toolName": "step_a", "toolArgs": {}})
-
             assert result["decision"] == "approve"
+            assert load_state().delegation_stack == []
+
+            handle_post_tool_use({"toolName": "step_a", "toolResult": "ok"})
+
             state = load_state()
             assert state.delegation_stack == [str(child)]
             assert state.current_step_index == 1
@@ -537,6 +540,7 @@ class TestAliases:
 
         with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
             assert handle_pre_tool_use({"toolName": "search", "toolArgs": {}})["decision"] == "approve"
+            handle_post_tool_use({"toolName": "search", "toolResult": "rows"})
             assert load_state().current_step_index == 1
 
     def test_alias_result_is_detected_as_its_target(self, tmp_path: Path) -> None:
