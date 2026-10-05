@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -128,30 +127,6 @@ def _build_enforcer(state: SessionState) -> tuple[SkillContract, SkillEnforcer, 
     tracker.record_many(state.collected_evidence)
 
     return contract, enforcer, tracker
-
-
-def _check_evidence_detection(
-    contract: SkillContract,
-    tool_name: str,
-    result_str: str,
-) -> list[str]:
-    """Check detection rules and return list of evidence IDs satisfied."""
-    if not contract.constraints or not contract.constraints.evidence:
-        return []
-    rules = contract.constraints.evidence.detection
-    if not rules:
-        return []
-
-    satisfied: list[str] = []
-    for rule in rules:
-        if not re.search(rule.tool_pattern, tool_name):
-            continue
-        if rule.result_pattern is None:
-            satisfied.append(rule.evidence_id)
-        elif re.search(rule.result_pattern, result_str):
-            satisfied.append(rule.evidence_id)
-
-    return satisfied
 
 
 def _find_step_for_tool(contract: SkillContract, tool_name: str) -> list[int]:
@@ -404,7 +379,7 @@ def handle_post_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
     tool_result = stdin_json.get("toolResult", "")
     result_str = str(tool_result) if not isinstance(tool_result, str) else tool_result
 
-    satisfied = _check_evidence_detection(contract, tool_name, result_str)
+    satisfied = tracker.detect(tool_name, result_str)
     if satisfied:
         for eid in satisfied:
             if eid not in state.collected_evidence:

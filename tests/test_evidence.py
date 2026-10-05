@@ -2,6 +2,7 @@
 
 from scp.models import (
     Constraints,
+    EvidenceDetectionRule,
     EvidenceItem,
     EvidenceRequirements,
     SkillContract,
@@ -19,6 +20,23 @@ def _make_contract(evidence_ids: list[str]) -> SkillContract:
                 required=[EvidenceItem(id=eid, description=eid) for eid in evidence_ids]
             )
         ),
+    )
+
+
+def _detecting_tracker(*rules: EvidenceDetectionRule) -> EvidenceTracker:
+    ids = sorted({rule.evidence_id for rule in rules})
+    return EvidenceTracker(
+        SkillContract(
+            scp="1.0",
+            name="test",
+            description="Test.",
+            constraints=Constraints(
+                evidence=EvidenceRequirements(
+                    required=[EvidenceItem(id=eid, description=eid) for eid in ids],
+                    detection=list(rules),
+                )
+            ),
+        )
     )
 
 
@@ -83,3 +101,56 @@ class TestEvidenceTracker:
         tracker.record("unknown_extra")
         assert tracker.is_complete
         assert "unknown_extra" in tracker.collected_ids
+
+
+class TestDetect:
+    def test_tool_pattern_only(self) -> None:
+        rule = EvidenceDetectionRule(evidence_id="thread_read", tool_pattern=r"^slack_get_thread$")
+        tracker = _detecting_tracker(rule)
+
+        assert tracker.detect("slack_get_thread", "any result") == ["thread_read"]
+
+    def test_tool_pattern_no_match(self) -> None:
+        rule = EvidenceDetectionRule(evidence_id="thread_read", tool_pattern=r"^slack_get_thread$")
+        tracker = _detecting_tracker(rule)
+
+        assert tracker.detect("other_tool", "any result") == []
+
+    def test_tool_and_result_pattern(self) -> None:
+        tracker = _detecting_tracker(
+            EvidenceDetectionRule(
+                evidence_id="alert_classified", tool_pattern=r"^slack_get_thread$", result_pattern=r"ecp-traffic"
+            )
+        )
+
+        assert tracker.detect("slack_get_thread", '{"text": "ecp-traffic alert fired"}') == ["alert_classified"]
+
+    def test_result_pattern_no_match(self) -> None:
+        tracker = _detecting_tracker(
+            EvidenceDetectionRule(
+                evidence_id="alert_classified", tool_pattern=r"^slack_get_thread$", result_pattern=r"ecp-traffic"
+            )
+        )
+
+        assert tracker.detect("slack_get_thread", '{"text": "unrelated message"}') == []
+
+    def test_returns_each_id_once_in_rule_order(self) -> None:
+        tracker = _detecting_tracker(
+            EvidenceDetectionRule(evidence_id="b", tool_pattern="query"),
+            EvidenceDetectionRule(evidence_id="a", tool_pattern="query"),
+            EvidenceDetectionRule(evidence_id="b", tool_pattern="run"),
+        )
+
+        assert tracker.detect("run_query", "") == ["b", "a"]
+
+    def test_does_not_record(self) -> None:
+        tracker = _detecting_tracker(EvidenceDetectionRule(evidence_id="a", tool_pattern="query"))
+
+        tracker.detect("query", "")
+
+        assert tracker.collected_ids == set()
+
+    def test_no_detection_rules(self) -> None:
+        tracker = EvidenceTracker(_make_contract(["a"]))
+
+        assert tracker.detect("query", "anything") == []
