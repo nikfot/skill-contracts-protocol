@@ -22,11 +22,11 @@ Tool call → preToolUse hook → load state → resolve enforcement mode
                             → check tool against tool_ids (+ delegation merges)
                             → check plan step ordering
                             → check evidence gates (requires_evidence)
-                            → advance step index on match
                             → APPROVE or REJECT (or WARN in soft mode)
 
 Tool result → postToolUse hook → load state → check detection rules
-                               → record satisfied evidence → persist state
+                               → record satisfied evidence
+                               → advance step index on match → persist state
 ```
 
 ### Key Design Decisions
@@ -147,7 +147,8 @@ constraints:
 
 ### Automatic Step Advancement
 
-When a tool call matches the current step's tool:
+When a completed tool call (postToolUse) matches the current step's tool, so a
+rejected or failed call never unlocks the next step:
 1. The step is marked completed
 2. `current_step_index` advances
 3. If the step has `delegates`, the child skill is pushed onto the delegation stack
