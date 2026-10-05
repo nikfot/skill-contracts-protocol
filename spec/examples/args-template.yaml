@@ -8,6 +8,13 @@ activation:
     - memory pressure
     - disk pressure
     - pid pressure
+inputs:
+  - name: node_name
+    description: Kubernetes node name.
+    pattern: "[a-z0-9][a-z0-9.-]{0,252}"
+  - name: start_time
+    description: Start of the window, ISO-8601 (e.g. 2026-09-01T13:00:00Z).
+    pattern: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?Z"
 constraints:
   tool_ids:
     - run_es_query
@@ -45,8 +52,9 @@ constraints:
 
 # Investigate Node Pressure
 
-This skill demonstrates `args_template` with `{{variable}}` placeholders.
-The runtime resolves `{{node_name}}` and `{{start_time}}` from context
-before executing each plan step.
+This skill demonstrates `args_template` with `{{variable}}` placeholders,
+declared under `inputs`. The host supplies `node_name` and `start_time`;
+`scp.runtime.resolve_inputs` checks them against each `pattern` before the
+plan runs.
 
 Unresolved placeholders cause a validation error at runtime.

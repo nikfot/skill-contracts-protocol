@@ -32,6 +32,11 @@
       "uniqueItems": true,
       "description": "Child skill names this skill may delegate to."
     },
+    "inputs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/InputSpec" },
+      "description": "Values the host supplies for args_template placeholders."
+    },
     "constraints": {
       "type": "object",
       "description": "The enforcement contract.",
@@ -199,6 +204,32 @@
         "result_pattern": {
           "type": "string",
           "description": "Optional regex searched against the stringified tool result."
+        }
+      },
+      "additionalProperties": false
+    },
+    "InputSpec": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "Placeholder name used as {{name}} in args_template."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the value is, for the host or the user supplying it."
+        },
+        "required": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, the skill cannot run without this value."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Python regex the whole value must match."
         }
       },
       "additionalProperties": false

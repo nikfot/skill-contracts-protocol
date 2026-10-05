@@ -53,6 +53,30 @@ Files without a `constraints` block are valid SCP files -- they simply have no e
 | `activation` | object | no | Exclusive invocation routes. When absent the skill is always discoverable. When present the skill is invocable **only** through its declared routes. See below. |
 | `constraints` | object | no | The enforcement contract. See below. |
 | `delegates_to` | list of strings | no | Child skill names this skill may delegate to. During delegation the child's `tool_ids` are merged into the parent's allowed set. |
+| `inputs` | list of InputSpec | no | Values the host supplies for `{{placeholders}}` in plan `args_template`. See below. |
+
+### `inputs`
+
+Each entry declares one value the skill needs before its plan can run. SCP does not say where the value comes from: a form, a CLI flag or an LLM extraction are all valid. Hosts check values with `scp.runtime.resolve_inputs`.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Placeholder name, used as `{{name}}` in `args_template`. Letters, digits and `_`, not starting with a digit. |
+| `description` | string | yes | What the value is, for the host or the person supplying it. |
+| `required` | boolean | no | If `true`, the skill cannot run without this value. Default: `true`. |
+| `pattern` | regex string | no | Python regex the whole value must match. A value that does not match is rejected. |
+
+When `inputs` is absent, every placeholder in the plan is treated as a required input with no pattern.
+
+```yaml
+inputs:
+  - name: host_id
+    description: Cloud instance ID of the unhealthy host.
+    pattern: "i-[0-9a-f]+"
+  - name: alert_time
+    description: Alert time, ISO-8601.
+    required: false
+```
 
 ### `activation`
 
@@ -144,6 +168,7 @@ A valid SCP contract must satisfy:
 3. **Tool-overrides consistency**: Every value in `tool_overrides` must appear in `tool_ids` (when `tool_ids` is defined).
 4. **Evidence ID uniqueness**: No duplicate `id` values within `evidence.required`.
 5. **Non-negative iterations**: `finalization.min_iterations` must be >= 0.
+6. **Declared inputs** (only when `inputs` is present): input names are unique, every `pattern` is a valid regex, and every `{{placeholder}}` in `args_template` is declared. A declared input that no placeholder uses is allowed.
 
 ## Template Interpolation
 
@@ -155,7 +180,7 @@ args_template:
   timeout_seconds: 30
 ```
 
-Placeholders are resolved at runtime by the agent framework. Unresolved placeholders should be treated as errors.
+Placeholders are resolved at runtime by the agent framework. Unresolved placeholders should be treated as errors. Declare each placeholder under `inputs` to give it a description, mark it optional, or constrain it with a `pattern`.
 
 ## Backward Compatibility
 

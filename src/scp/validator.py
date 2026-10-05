@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .models import SkillContract
 
 
@@ -15,6 +17,8 @@ def validate_contract(contract: SkillContract) -> list[str]:
     2. Tool override targets must appear in tool_ids (if defined).
     3. Evidence IDs must be unique (also enforced by Pydantic, but checked
        here for completeness when consuming pre-validated data).
+    4. When ``inputs`` is declared: names are unique, patterns compile, and
+       every ``args_template`` placeholder is declared.
     """
     errors: list[str] = []
     allowed = contract.tool_ids
@@ -43,5 +47,20 @@ def validate_contract(contract: SkillContract) -> list[str]:
         if ref.name in seen_ref_names:
             errors.append(f"Duplicate referenced_content name: '{ref.name}'")
         seen_ref_names.add(ref.name)
+
+    if contract.inputs is not None:
+        names = [spec.name for spec in contract.inputs]
+        for name in sorted({n for n in names if names.count(n) > 1}):
+            errors.append(f"Duplicate input name: '{name}'")
+        for spec in contract.inputs:
+            if spec.pattern is None:
+                continue
+            try:
+                re.compile(spec.pattern)
+            except re.error as exc:
+                errors.append(f"inputs['{spec.name}'].pattern is not a valid regex: {exc}")
+        for name in contract.placeholders:
+            if name not in names:
+                errors.append(f"Placeholder '{{{{{name}}}}}' is not declared in inputs")
 
     return errors
