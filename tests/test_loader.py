@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from scp.loader import load_skill, load_skill_from_dict, load_skill_from_string
+from scp.loader import ContractValidationError, load_skill, load_skill_from_dict, load_skill_from_string
 from scp.models import SkillContract
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "spec" / "examples"
@@ -78,6 +78,20 @@ class TestLoadSkillFromDict:
     def test_missing_scp_key(self) -> None:
         with pytest.raises(ValueError, match="scp"):
             load_skill_from_dict({"name": "bad"})
+
+    def test_referential_errors_raise(self) -> None:
+        data = {
+            "scp": "1.0",
+            "name": "bad-refs",
+            "description": "Bad refs.",
+            "constraints": {"plan": [{"tool": "a", "description": "A", "requires_evidence": ["typo"]}]},
+        }
+
+        with pytest.raises(ContractValidationError) as exc_info:
+            load_skill_from_dict(data)
+
+        assert exc_info.value.errors == ["plan[0].requires_evidence 'typo' is not a declared evidence ID"]
+        assert isinstance(exc_info.value, ValueError)
 
 
 class TestLoadSkillFromFile:

@@ -95,12 +95,12 @@ When `activation` is **present**, the skill uses an **exclusive** activation mod
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `enforcement` | string | no | How strictly the contract is enforced: `strict` (reject violations), `soft` (warn + approve), `off` (pass-through). Default: `strict`. |
+| `enforcement` | string | no | How strictly the contract is enforced: `strict` (reject violations), `soft` (warn + approve), `off` (pass-through). Default: `strict`. Quote `"off"` in YAML; unquoted `off` parses as a boolean. |
 | `tool_ids` | list of strings | no | Tool names the agent may call. If present, calls to unlisted tools are rejected. If absent, all tools are allowed. |
 | `plan` | list of PlanStep | no | Ordered steps the agent should execute before free-form investigation. |
 | `evidence` | object | no | Evidence requirements for finalization. |
 | `finalization` | object | no | Rules governing when the agent may produce its final output. |
-| `tool_overrides` | map (string -> string) | no | Alias mapping: keys are legacy/generic names, values are actual tool names. |
+| `tool_overrides` | map (string -> string) | no | Alias mapping: keys are legacy/generic names, values are actual tool names. Calls are resolved to the actual name before every rule is applied, so plans, `tool_ids`, and detection rules name actual tools, never aliases. |
 | `referenced_content` | list of ReferencedContent | no | Named supplementary content blocks the agent can read selectively. |
 
 ### PlanStep
@@ -169,6 +169,11 @@ A valid SCP contract must satisfy:
 4. **Evidence ID uniqueness**: No duplicate `id` values within `evidence.required`.
 5. **Non-negative iterations**: `finalization.min_iterations` must be >= 0.
 6. **Declared inputs** (only when `inputs` is present): input names are unique, every `pattern` is a valid regex, and every `{{placeholder}}` in `args_template` is declared. A declared input that no placeholder uses is allowed.
+7. **Evidence references**: every `requires_evidence` entry and every detection `evidence_id` is declared in `evidence.required`, and every detection `tool_pattern` and `result_pattern` is a valid regex.
+8. **Delegation references**: every plan step `delegates` value appears in `delegates_to`, and `delegates_to` has no duplicates.
+9. **Unambiguous aliases**: a `tool_overrides` value is not itself an alias, and an alias is neither a plan step `tool` nor listed in `tool_ids`.
+
+Loaders apply these rules when a contract is loaded and reject a contract that violates any of them, so an invalid contract never reaches runtime enforcement.
 
 ## Template Interpolation
 
@@ -198,7 +203,8 @@ A skill may delegate to child skills using the `delegates_to` field. This enable
 2. Plan steps may reference a child via `delegates: child-skill-name`.
 3. When a delegation is active, the enforcer merges the child's `tool_ids` into the parent's allowed set.
 4. Multiple levels of delegation are supported (stack-based).
-5. The child contract must be loadable at runtime (file path resolved via skill directories).
+5. The child contract must be loadable at runtime (file path resolved via skill directories). In `strict` mode a delegating step whose child cannot be resolved is rejected; in `soft` mode it is approved with a warning.
+6. A contract without `delegates_to` cannot delegate.
 
 ### Example
 
@@ -251,9 +257,11 @@ SCP_MODE=strict # Force strict even if contract says soft
 
 This allows operators to tune enforcement without modifying skill files.
 
+If the active contract cannot be loaded or fails validation, hooks fail closed: the call is rejected unless `SCP_MODE` is `soft` (warn + approve) or `off`.
+
 ## Plan Step Enforcement
 
-When a `constraints.plan` is present, the enforcer tracks step ordering:
+When a `constraints.plan` is present, the enforcer tracks step ordering. Each rule below applies to the tool name after `tool_overrides` resolution, so an alias is held to the same order and evidence gates as the tool it names:
 
 1. **Step order**: A tool matching step N+1 is blocked until step N's tool has been called.
 2. **Retries**: A tool matching a past (completed) step is always allowed.

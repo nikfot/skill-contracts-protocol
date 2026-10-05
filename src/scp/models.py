@@ -272,5 +272,4 @@ class SkillContract(BaseModel):
         tools = self.tool_ids
         if tools is None:
             return True
-        resolved = self.resolve_tool(name)
-        return resolved in tools or name in tools
+        return self.resolve_tool(name) in tools

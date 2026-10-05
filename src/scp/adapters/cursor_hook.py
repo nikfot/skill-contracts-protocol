@@ -98,23 +98,37 @@ def _load_contract(skill_path: str) -> SkillContract | None:
         return None
 
 
-def _resolve_enforcement_mode(contract: SkillContract) -> EnforcementMode:
-    """Resolve effective enforcement mode: env var overrides contract."""
+def _env_enforcement_mode() -> EnforcementMode | None:
     env_mode = os.environ.get("SCP_MODE", "").strip().lower()
     if env_mode in ("strict", "soft", "off"):
         return EnforcementMode(env_mode)
-    return contract.enforcement_mode
+    return None
+
+
+def _resolve_enforcement_mode(contract: SkillContract) -> EnforcementMode:
+    """Resolve effective enforcement mode: env var overrides contract."""
+    return _env_enforcement_mode() or contract.enforcement_mode
+
+
+def _apply_mode(mode: EnforcementMode, reason: str) -> dict[str, Any] | None:
+    """Hook response for a violation, or None when the call may proceed."""
+    if mode == EnforcementMode.strict:
+        return {"decision": "reject", "reason": reason}
+    if mode == EnforcementMode.soft:
+        logger.warning(f"[SCP soft] {reason}")
+    return None
 
 
 def _build_enforcer(state: SessionState) -> tuple[SkillContract, SkillEnforcer, EvidenceTracker] | None:
-    """Reconstruct enforcer and tracker from persisted state."""
+    """Reconstruct enforcer and tracker from persisted state.
+
+    Returns None when no skill is active. Raises ``ValueError`` or ``OSError``
+    when the active contract cannot be loaded or is invalid.
+    """
     if not state.active_skill_path:
         return None
 
-    contract = _load_contract(state.active_skill_path)
-    if contract is None:
-        return None
-
+    contract = load_skill(state.active_skill_path)
     enforcer = SkillEnforcer(contract)
     enforcer.restore_progress(
         iteration=state.iteration,
@@ -131,25 +145,6 @@ def _build_enforcer(state: SessionState) -> tuple[SkillContract, SkillEnforcer, 
     tracker.record_many(state.collected_evidence)
 
     return contract, enforcer, tracker
-
-
-def _maybe_push_delegation(
-    contract: SkillContract,
-    state: SessionState,
-    step_index: int,
-) -> None:
-    """Push delegation if the current step declares delegates."""
-    plan_steps = contract.plan_steps
-    if step_index >= len(plan_steps):
-        return
-
-    step = plan_steps[step_index]
-    if not step.delegates:
-        return
-
-    child_path = _find_skill_path(step.delegates)
-    if child_path and child_path not in state.delegation_stack:
-        state.delegation_stack.append(child_path)
 
 
 def _maybe_pop_delegation(
@@ -187,7 +182,8 @@ def _find_skill_path(skill_name: str) -> str | None:
                 c = load_skill(skill_file)
                 if c.name == skill_name:
                     return str(skill_file)
-            except (ValueError, OSError):
+            except (ValueError, OSError) as exc:
+                logger.warning(f"[SCP] Skipping invalid skill {skill_file}: {exc}")
                 continue
     return None
 
@@ -221,7 +217,11 @@ def handle_pre_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
         {"decision": "reject", "reason": "..."} if blocked (strict mode).
     """
     state = load_state()
-    result = _build_enforcer(state)
+    try:
+        result = _build_enforcer(state)
+    except (ValueError, OSError) as exc:
+        reason = f"Active SCP contract '{state.active_skill_path}' is invalid or unreadable: {exc}"
+        return _apply_mode(_env_enforcement_mode() or EnforcementMode.strict, reason) or {"decision": "approve"}
 
     if result is None:
         return {"decision": "approve"}
@@ -242,6 +242,18 @@ def handle_pre_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
         logger.warning(f"[SCP soft] {decision.reason}")
         return {"decision": "approve"}
 
+    step_index = enforcer.current_step_index
+    steps = contract.plan_steps
+    delegate_path: str | None = None
+    delegates = steps[step_index].delegates if step_index < len(steps) else None
+    if delegates and steps[step_index].tool == decision.tool_name:
+        delegate_path = _find_skill_path(delegates)
+        if delegate_path is None:
+            reason = f"Step {step_index + 1} delegates to '{delegates}', which was not found in SCP_SKILL_DIRS."
+            rejection = _apply_mode(mode, reason)
+            if rejection:
+                return rejection
+
     return {"decision": "approve"}
 
 
@@ -254,7 +266,10 @@ def handle_post_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
     Returns: {"decision": "approve"} (post-tool is never blocking).
     """
     state = load_state()
-    result = _build_enforcer(state)
+    try:
+        result = _build_enforcer(state)
+    except (ValueError, OSError):
+        return {"decision": "approve"}
 
     if result is None:
         return {"decision": "approve"}
@@ -274,7 +289,12 @@ def handle_post_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
 
     step_index = enforcer.current_step_index
     if enforcer.advance(resolved_tool_name) is not None:
-        _maybe_push_delegation(contract, state, step_index)
+        steps = contract.plan_steps
+        delegates = steps[step_index].delegates if step_index < len(steps) else None
+        if delegates:
+            delegate_path = _find_skill_path(delegates)
+            if delegate_path and delegate_path not in state.delegation_stack:
+                state.delegation_stack.append(delegate_path)
         state.completed_steps = enforcer.completed_steps
         state.current_step_index = enforcer.current_step_index
         _maybe_pop_delegation(contract, state, resolved_tool_name)
@@ -308,7 +328,8 @@ def _detect_skill_from_message(message: str) -> str | None:
         for skill_file in skill_dir.rglob("SKILL.md"):
             try:
                 c = load_skill(skill_file)
-            except (ValueError, OSError):
+            except (ValueError, OSError) as exc:
+                logger.warning(f"[SCP] Skipping invalid skill {skill_file}: {exc}")
                 continue
 
             if c.activation and c.activation.slash_command:

@@ -75,7 +75,7 @@ class SkillEnforcer:
         While delegated, the child's tool_ids are merged with the parent's
         allowed set.
         """
-        if self._contract.delegates_to and child_contract.name not in self._contract.delegates_to:
+        if not self._contract.delegates_to or child_contract.name not in self._contract.delegates_to:
             raise ValueError(
                 f"Contract '{self._contract.name}' does not declare "
                 f"'{child_contract.name}' in delegates_to."
@@ -116,7 +116,7 @@ class SkillEnforcer:
         rewritten = resolved != tool_name
 
         effective_tools = self._effective_tool_ids()
-        if effective_tools is not None and resolved not in effective_tools and tool_name not in effective_tools:
+        if effective_tools is not None and resolved not in effective_tools:
             return ToolRewrite(
                 tool_name=resolved,
                 tool_args=tool_args,
@@ -151,9 +151,9 @@ class SkillEnforcer:
         rewrite = self.check_tool_call(tool_name, tool_args)
         reason = rewrite.block_reason if rewrite.blocked else None
         if reason is None and step_index is None:
-            reason = self._step_order_violation(tool_name)
+            reason = self._step_order_violation(rewrite.tool_name)
         if reason is None:
-            reason = self._evidence_gate_violation(tool_name, tracker, step_index)
+            reason = self._evidence_gate_violation(rewrite.tool_name, tracker, step_index)
 
         effective = mode or self._contract.enforcement_mode
         action: ToolAction
@@ -172,7 +172,8 @@ class SkillEnforcer:
         )
 
     def advance(self, tool_name: str) -> int | None:
-        """Complete the current plan step if ``tool_name`` is its tool. Returns its index, else None."""
+        """Complete the current plan step if ``tool_name`` resolves to its tool. Returns its index, else None."""
+        tool_name = self._contract.resolve_tool(tool_name)
         steps = self._contract.plan_steps
         index = self._step_index
         if index >= len(steps) or steps[index].tool != tool_name:
