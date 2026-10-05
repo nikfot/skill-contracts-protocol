@@ -12,7 +12,6 @@ from scp.adapters.cursor_hook import (
     _check_evidence_detection,
     _check_evidence_gate,
     _check_step_order,
-    _state_path,
     handle_post_tool_use,
     handle_pre_tool_use,
     handle_session_start,
@@ -21,7 +20,6 @@ from scp.adapters.cursor_hook import (
 )
 from scp.models import (
     Constraints,
-    EnforcementMode,
     EvidenceDetectionRule,
     EvidenceItem,
     EvidenceRequirements,

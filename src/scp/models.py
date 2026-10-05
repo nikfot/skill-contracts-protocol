@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 
-class EnforcementMode(str, Enum):
+class EnforcementMode(str, Enum):  # noqa: UP042 -- StrEnum would change str() output for existing callers
     """How strictly the contract is enforced at runtime."""
 
     strict = "strict"
@@ -98,7 +98,9 @@ class Constraints(BaseModel):
 
     enforcement: EnforcementMode = Field(
         default=EnforcementMode.strict,
-        description="How strictly the contract is enforced: strict (reject violations), soft (warn only), off (pass-through).",
+        description=(
+            "How strictly the contract is enforced: strict (reject violations), soft (warn only), off (pass-through)."
+        ),
     )
     tool_ids: list[str] | None = None
     plan: list[PlanStep] | None = None
