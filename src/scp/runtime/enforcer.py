@@ -6,11 +6,12 @@ InvestigatorAgent loop.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
-from ..models import SkillContract
+from ..models import EnforcementMode, SkillContract
 from .evidence import EvidenceTracker
-from .protocol import ToolRewrite
+from .protocol import ToolAction, ToolDecision, ToolRewrite
 
 
 class SkillEnforcer:
@@ -19,6 +20,8 @@ class SkillEnforcer:
     Responsibilities:
     - Gate tool calls against tool_ids
     - Rewrite tool names via tool_overrides
+    - Enforce plan step order and evidence-gated steps
+    - Apply the enforcement mode (strict, soft, off)
     - Decide when the agent may finalize
     - Support contract stacking for delegation
     """
@@ -27,6 +30,8 @@ class SkillEnforcer:
         self._contract = contract
         self._iteration = 0
         self._delegation_stack: list[SkillContract] = []
+        self._step_index = 0
+        self._completed_steps: set[int] = set()
 
     @property
     def contract(self) -> SkillContract:
@@ -35,6 +40,27 @@ class SkillEnforcer:
     @property
     def iteration(self) -> int:
         return self._iteration
+
+    @property
+    def current_step_index(self) -> int:
+        """Index of the next plan step to run."""
+        return self._step_index
+
+    @property
+    def completed_steps(self) -> list[int]:
+        return sorted(self._completed_steps)
+
+    def restore_progress(
+        self,
+        *,
+        iteration: int = 0,
+        current_step_index: int = 0,
+        completed_steps: Iterable[int] = (),
+    ) -> None:
+        """Rebuild progress for hosts that persist it between calls, such as per-process hooks."""
+        self._iteration = iteration
+        self._step_index = current_step_index
+        self._completed_steps = set(completed_steps)
 
     @property
     def active_delegation(self) -> SkillContract | None:
@@ -103,6 +129,88 @@ class SkillEnforcer:
             tool_name=resolved,
             tool_args=tool_args,
             rewritten=rewritten,
+        )
+
+    def evaluate(
+        self,
+        tool_name: str,
+        tool_args: dict[str, Any],
+        tracker: EvidenceTracker,
+        *,
+        step_index: int | None = None,
+        mode: EnforcementMode | None = None,
+    ) -> ToolDecision:
+        """Check one proposed tool call against every contract rule and apply the enforcement mode.
+
+        Rules, first violation wins: ``tool_ids``, plan step order, then the step's
+        ``requires_evidence`` gate. Pass ``step_index`` when the host runs the plan itself and
+        knows which step the call is for: the order check is skipped and that step's gate is
+        used. Without it, the step is inferred from ``current_step_index``, as for an agent
+        choosing its own tools. ``mode`` overrides the contract's ``enforcement``.
+        """
+        rewrite = self.check_tool_call(tool_name, tool_args)
+        reason = rewrite.block_reason if rewrite.blocked else None
+        if reason is None and step_index is None:
+            reason = self._step_order_violation(tool_name)
+        if reason is None:
+            reason = self._evidence_gate_violation(tool_name, tracker, step_index)
+
+        effective = mode or self._contract.enforcement_mode
+        action: ToolAction
+        if reason is None or effective is EnforcementMode.off:
+            action = "allow"
+        elif effective is EnforcementMode.soft:
+            action = "warn"
+        else:
+            action = "block"
+        return ToolDecision(
+            tool_name=rewrite.tool_name,
+            tool_args=rewrite.tool_args,
+            action=action,
+            reason=reason,
+            rewritten=rewrite.rewritten,
+        )
+
+    def advance(self, tool_name: str) -> int | None:
+        """Complete the current plan step if ``tool_name`` is its tool. Returns its index, else None."""
+        steps = self._contract.plan_steps
+        index = self._step_index
+        if index >= len(steps) or steps[index].tool != tool_name:
+            return None
+        self._completed_steps.add(index)
+        self._step_index += 1
+        return index
+
+    def _step_order_violation(self, tool_name: str) -> str | None:
+        """A tool from a later plan step is blocked until the current step has run.
+
+        Retrying a past step, and tools that are in no plan step, are always allowed.
+        """
+        steps = self._contract.plan_steps
+        matching = [i for i, step in enumerate(steps) if step.tool == tool_name]
+        current = self._step_index
+        if not matching or any(i <= current or i in self._completed_steps for i in matching):
+            return None
+        earliest = min(i for i in matching if i > current)
+        current_tool = steps[current].tool if current < len(steps) else "unknown"
+        return f"Step {current + 1} ({current_tool}) must complete before step {earliest + 1} ({tool_name})."
+
+    def _evidence_gate_violation(
+        self, tool_name: str, tracker: EvidenceTracker, step_index: int | None
+    ) -> str | None:
+        steps = self._contract.plan_steps
+        if step_index is None:
+            current = self._step_index
+            if current >= len(steps) or steps[current].tool != tool_name:
+                return None
+            step_index = current
+        step = steps[step_index]
+        missing = [eid for eid in step.requires_evidence or [] if eid not in tracker.collected_ids]
+        if not missing:
+            return None
+        return (
+            f"Step {step_index + 1} ({step.tool}) requires evidence: {', '.join(missing)}. "
+            "Collect the missing evidence first."
         )
 
     def can_finalize(self, tracker: EvidenceTracker) -> bool:
