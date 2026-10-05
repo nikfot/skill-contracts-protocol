@@ -242,7 +242,7 @@ class TestEnforcementModes:
 
 
 class TestStepAdvancement:
-    def test_advances_on_match(self, tmp_path: Path) -> None:
+    def test_advances_only_after_tool_completion(self, tmp_path: Path) -> None:
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(
             "---\n"
@@ -267,6 +267,13 @@ class TestStepAdvancement:
 
         with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
             result = handle_pre_tool_use({"toolName": "step_a", "toolArgs": {}})
+            assert result["decision"] == "approve"
+
+            updated = load_state()
+            assert updated.current_step_index == 0
+            assert updated.completed_steps == []
+
+            result = handle_post_tool_use({"toolName": "step_a", "toolResult": "completed"})
             assert result["decision"] == "approve"
 
             updated = load_state()

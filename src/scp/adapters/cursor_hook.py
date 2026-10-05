@@ -242,14 +242,6 @@ def handle_pre_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
         logger.warning(f"[SCP soft] {decision.reason}")
         return {"decision": "approve"}
 
-    step_index = enforcer.current_step_index
-    if enforcer.advance(tool_name) is not None:
-        _maybe_push_delegation(contract, state, step_index)
-        state.completed_steps = enforcer.completed_steps
-        state.current_step_index = enforcer.current_step_index
-        _maybe_pop_delegation(contract, state, tool_name)
-        save_state(state)
-
     return {"decision": "approve"}
 
 
@@ -273,11 +265,21 @@ def handle_post_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
     tool_result = stdin_json.get("toolResult", "")
     result_str = str(tool_result) if not isinstance(tool_result, str) else tool_result
 
-    satisfied = tracker.detect(tool_name, result_str)
+    resolved_tool_name = contract.resolve_tool(tool_name)
+    satisfied = tracker.detect(resolved_tool_name, result_str)
     if satisfied:
         for eid in satisfied:
             if eid not in state.collected_evidence:
                 state.collected_evidence.append(eid)
+
+    step_index = enforcer.current_step_index
+    if enforcer.advance(resolved_tool_name) is not None:
+        _maybe_push_delegation(contract, state, step_index)
+        state.completed_steps = enforcer.completed_steps
+        state.current_step_index = enforcer.current_step_index
+        _maybe_pop_delegation(contract, state, resolved_tool_name)
+
+    if satisfied or state.current_step_index != step_index:
         save_state(state)
 
     return {"decision": "approve"}
