@@ -1,5 +1,8 @@
 """Tests for scp.runtime.evidence."""
 
+import pytest
+from pydantic import ValidationError
+
 from scp.models import (
     Constraints,
     EvidenceDetectionRule,
@@ -104,6 +107,13 @@ class TestEvidenceTracker:
 
 
 class TestDetect:
+    @pytest.mark.parametrize("field", ["tool_pattern", "result_pattern"])
+    def test_invalid_regex_is_rejected_when_loading_rule(self, field: str) -> None:
+        values = {"evidence_id": "thread_read", "tool_pattern": r"^slack_get_thread$", field: "("}
+
+        with pytest.raises(ValidationError):
+            EvidenceDetectionRule(**values)
+
     def test_tool_pattern_only(self) -> None:
         rule = EvidenceDetectionRule(evidence_id="thread_read", tool_pattern=r"^slack_get_thread$")
         tracker = _detecting_tracker(rule)
