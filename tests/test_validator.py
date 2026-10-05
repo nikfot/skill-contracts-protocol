@@ -155,10 +155,10 @@ class TestReferences:
         ]
 
     def test_detection_patterns_must_compile(self) -> None:
-        evidence = EvidenceRequirements(
-            required=[EvidenceItem(id="read", description="Read")],
-            detection=[EvidenceDetectionRule(evidence_id="read", tool_pattern="(", result_pattern="[")],
-        )
+        # The model rejects bad regexes on load; model_construct stands in for pre-validated data.
+        rule = EvidenceDetectionRule.model_construct(evidence_id="read", tool_pattern="(", result_pattern="[")
+        evidence = EvidenceRequirements(required=[EvidenceItem(id="read", description="Read")])
+        evidence.detection = [rule]
 
         errors = validate_contract(_refs_contract(evidence=evidence))
 
