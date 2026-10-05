@@ -116,7 +116,11 @@ def _build_enforcer(state: SessionState) -> tuple[SkillContract, SkillEnforcer, 
         return None
 
     enforcer = SkillEnforcer(contract)
-    enforcer._iteration = state.iteration
+    enforcer.restore_progress(
+        iteration=state.iteration,
+        current_step_index=state.current_step_index,
+        completed_steps=state.completed_steps,
+    )
 
     for child_path in state.delegation_stack:
         child = _load_contract(child_path)
@@ -127,95 +131,6 @@ def _build_enforcer(state: SessionState) -> tuple[SkillContract, SkillEnforcer, 
     tracker.record_many(state.collected_evidence)
 
     return contract, enforcer, tracker
-
-
-def _find_step_for_tool(contract: SkillContract, tool_name: str) -> list[int]:
-    """Find all plan step indices whose tool matches the given tool name."""
-    matches = []
-    for i, step in enumerate(contract.plan_steps):
-        if step.tool == tool_name:
-            matches.append(i)
-    return matches
-
-
-def _check_step_order(
-    contract: SkillContract,
-    state: SessionState,
-    tool_name: str,
-) -> tuple[bool, str]:
-    """Check if a tool call respects plan step ordering.
-
-    Returns (allowed, reason). When allowed is False, reason explains why.
-
-    Logic:
-    - If tool matches current step: allowed (will advance)
-    - If tool matches a past (completed) step: allowed (retries OK)
-    - If tool matches a future step: blocked (must complete current first)
-    - If tool is not in any plan step: allowed (utility tool)
-    """
-    plan_steps = contract.plan_steps
-    if not plan_steps:
-        return True, ""
-
-    matching_indices = _find_step_for_tool(contract, tool_name)
-
-    if not matching_indices:
-        return True, ""
-
-    current_idx = state.current_step_index
-
-    for idx in matching_indices:
-        if idx == current_idx:
-            return True, ""
-        if idx < current_idx or idx in state.completed_steps:
-            return True, ""
-
-    earliest_future = min(i for i in matching_indices if i > current_idx)
-    current_step = plan_steps[current_idx] if current_idx < len(plan_steps) else None
-    current_tool = current_step.tool if current_step else "unknown"
-
-    return (
-        False,
-        f"Step {current_idx + 1} ({current_tool}) must complete before "
-        f"step {earliest_future + 1} ({tool_name}).",
-    )
-
-
-def _check_evidence_gate(
-    contract: SkillContract,
-    state: SessionState,
-    tool_name: str,
-) -> tuple[bool, str]:
-    """Check if the step's requires_evidence gate is satisfied.
-
-    Returns (allowed, reason).
-    """
-    plan_steps = contract.plan_steps
-    if not plan_steps:
-        return True, ""
-
-    matching_indices = _find_step_for_tool(contract, tool_name)
-    if not matching_indices:
-        return True, ""
-
-    current_idx = state.current_step_index
-    for idx in matching_indices:
-        if idx != current_idx:
-            continue
-        step = plan_steps[idx]
-        if not step.requires_evidence:
-            return True, ""
-
-        missing = [eid for eid in step.requires_evidence if eid not in state.collected_evidence]
-        if missing:
-            return (
-                False,
-                f"Step {idx + 1} ({tool_name}) requires evidence: {', '.join(missing)}. "
-                f"Collect the missing evidence first.",
-            )
-        return True, ""
-
-    return True, ""
 
 
 def _maybe_push_delegation(
@@ -299,7 +214,7 @@ def handle_session_start(stdin_json: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle_pre_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
-    """Handle preToolUse hook -- enforce tool whitelist, step ordering, and evidence gates.
+    """Handle preToolUse hook -- enforce the contract via ``SkillEnforcer.evaluate``.
 
     Returns:
         {"decision": "approve"} if the tool is allowed.
@@ -320,41 +235,12 @@ def handle_pre_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
     tool_name = stdin_json.get("toolName", "")
     tool_args = stdin_json.get("toolArgs", {})
 
-    # 1. Tool whitelist check
-    rewrite = enforcer.check_tool_call(tool_name, tool_args)
-    if rewrite.blocked:
-        reason = rewrite.block_reason or f"Tool '{tool_name}' not in tool_ids."
-        if mode == EnforcementMode.soft:
-            logger.warning(f"[SCP soft] {reason}")
-            return {"decision": "approve"}
-        return {"decision": "reject", "reason": reason}
-
-    # 2. Step order check
-    allowed, reason = _check_step_order(contract, state, tool_name)
-    if not allowed:
-        if mode == EnforcementMode.soft:
-            logger.warning(f"[SCP soft] {reason}")
-            return {"decision": "approve"}
-        return {"decision": "reject", "reason": reason}
-
-    # 3. Evidence gate check
-    allowed, reason = _check_evidence_gate(contract, state, tool_name)
-    if not allowed:
-        if mode == EnforcementMode.soft:
-            logger.warning(f"[SCP soft] {reason}")
-            return {"decision": "approve"}
-        return {"decision": "reject", "reason": reason}
-
-    # 4. Advance step index if this tool matches the current step
-    plan_steps = contract.plan_steps
-    if plan_steps and state.current_step_index < len(plan_steps):
-        current_step = plan_steps[state.current_step_index]
-        if current_step.tool == tool_name:
-            _maybe_push_delegation(contract, state, state.current_step_index)
-            state.completed_steps.append(state.current_step_index)
-            state.current_step_index += 1
-            _maybe_pop_delegation(contract, state, tool_name)
-            save_state(state)
+    decision = enforcer.evaluate(tool_name, tool_args, tracker, mode=mode)
+    if decision.action == "block":
+        return {"decision": "reject", "reason": decision.reason}
+    if decision.action == "warn":
+        logger.warning(f"[SCP soft] {decision.reason}")
+        return {"decision": "approve"}
 
     return {"decision": "approve"}
 
@@ -379,11 +265,21 @@ def handle_post_tool_use(stdin_json: dict[str, Any]) -> dict[str, Any]:
     tool_result = stdin_json.get("toolResult", "")
     result_str = str(tool_result) if not isinstance(tool_result, str) else tool_result
 
-    satisfied = tracker.detect(tool_name, result_str)
+    resolved_tool_name = contract.resolve_tool(tool_name)
+    satisfied = tracker.detect(resolved_tool_name, result_str)
     if satisfied:
         for eid in satisfied:
             if eid not in state.collected_evidence:
                 state.collected_evidence.append(eid)
+
+    step_index = enforcer.current_step_index
+    if enforcer.advance(resolved_tool_name) is not None:
+        _maybe_push_delegation(contract, state, step_index)
+        state.completed_steps = enforcer.completed_steps
+        state.current_step_index = enforcer.current_step_index
+        _maybe_pop_delegation(contract, state, resolved_tool_name)
+
+    if satisfied or state.current_step_index != step_index:
         save_state(state)
 
     return {"decision": "approve"}

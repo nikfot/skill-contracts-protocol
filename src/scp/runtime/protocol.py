@@ -6,7 +6,27 @@ Extracted and generalized from elastic/sophia's SkillRuntime protocol.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
+
+ToolAction = Literal["allow", "warn", "block"]
+
+
+@dataclass
+class ToolDecision:
+    """What a host should do with one proposed tool call, after the enforcement mode is applied.
+
+    ``warn`` means a rule was broken but the mode is ``soft``: approve and log ``reason``.
+    """
+
+    tool_name: str
+    tool_args: dict[str, Any]
+    action: ToolAction = "allow"
+    reason: str | None = None
+    rewritten: bool = False
+
+    @property
+    def allowed(self) -> bool:
+        return self.action != "block"
 
 
 @dataclass

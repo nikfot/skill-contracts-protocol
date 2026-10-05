@@ -9,8 +9,6 @@ import pytest
 
 from scp.adapters.cursor_hook import (
     SessionState,
-    _check_evidence_gate,
-    _check_step_order,
     handle_post_tool_use,
     handle_pre_tool_use,
     handle_session_start,
@@ -19,7 +17,6 @@ from scp.adapters.cursor_hook import (
 )
 from scp.models import (
     Constraints,
-    PlanStep,
     SkillContract,
 )
 from scp.runtime.enforcer import SkillEnforcer
@@ -109,126 +106,6 @@ class TestStatePersistence:
         with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
             state = load_state()
             assert state.active_skill_path is None
-
-
-class TestStepOrder:
-    def test_current_step_allowed(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(tool="step_b", description="B"),
-                ]
-            )
-        )
-        state = SessionState(current_step_index=0)
-        allowed, reason = _check_step_order(contract, state, "step_a")
-        assert allowed
-        assert reason == ""
-
-    def test_future_step_blocked(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(tool="step_b", description="B"),
-                    PlanStep(tool="step_c", description="C"),
-                ]
-            )
-        )
-        state = SessionState(current_step_index=0)
-        allowed, reason = _check_step_order(contract, state, "step_c")
-        assert not allowed
-        assert "step_a" in reason
-        assert "step_c" in reason
-
-    def test_past_step_allowed(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(tool="step_b", description="B"),
-                ]
-            )
-        )
-        state = SessionState(current_step_index=1, completed_steps=[0])
-        allowed, reason = _check_step_order(contract, state, "step_a")
-        assert allowed
-
-    def test_utility_tool_always_allowed(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                tool_ids=["step_a", "step_b", "utility"],
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(tool="step_b", description="B"),
-                ],
-            )
-        )
-        state = SessionState(current_step_index=0)
-        allowed, reason = _check_step_order(contract, state, "utility")
-        assert allowed
-
-    def test_no_plan_always_allowed(self) -> None:
-        contract = _make_contract()
-        state = SessionState(current_step_index=0)
-        allowed, reason = _check_step_order(contract, state, "anything")
-        assert allowed
-
-
-class TestEvidenceGate:
-    def test_no_gate_allows(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[PlanStep(tool="step_a", description="A")]
-            )
-        )
-        state = SessionState(current_step_index=0)
-        allowed, reason = _check_evidence_gate(contract, state, "step_a")
-        assert allowed
-
-    def test_gate_satisfied(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(
-                        tool="post_reply",
-                        description="Post",
-                        requires_evidence=["thread_read", "classified"],
-                    ),
-                ]
-            )
-        )
-        state = SessionState(
-            current_step_index=1,
-            completed_steps=[0],
-            collected_evidence=["thread_read", "classified"],
-        )
-        allowed, reason = _check_evidence_gate(contract, state, "post_reply")
-        assert allowed
-
-    def test_gate_blocks_missing_evidence(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                plan=[
-                    PlanStep(tool="step_a", description="A"),
-                    PlanStep(
-                        tool="post_reply",
-                        description="Post",
-                        requires_evidence=["thread_read", "classified"],
-                    ),
-                ]
-            )
-        )
-        state = SessionState(
-            current_step_index=1,
-            completed_steps=[0],
-            collected_evidence=["thread_read"],
-        )
-        allowed, reason = _check_evidence_gate(contract, state, "post_reply")
-        assert not allowed
-        assert "classified" in reason
 
 
 class TestDelegationStack:
@@ -365,7 +242,7 @@ class TestEnforcementModes:
 
 
 class TestStepAdvancement:
-    def test_advances_on_match(self, tmp_path: Path) -> None:
+    def test_advances_only_after_tool_completion(self, tmp_path: Path) -> None:
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(
             "---\n"
@@ -390,6 +267,13 @@ class TestStepAdvancement:
 
         with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
             result = handle_pre_tool_use({"toolName": "step_a", "toolArgs": {}})
+            assert result["decision"] == "approve"
+
+            updated = load_state()
+            assert updated.current_step_index == 0
+            assert updated.completed_steps == []
+
+            result = handle_post_tool_use({"toolName": "step_a", "toolResult": "completed"})
             assert result["decision"] == "approve"
 
             updated = load_state()
