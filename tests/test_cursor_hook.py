@@ -9,7 +9,6 @@ import pytest
 
 from scp.adapters.cursor_hook import (
     SessionState,
-    _check_evidence_detection,
     _check_evidence_gate,
     _check_step_order,
     handle_post_tool_use,
@@ -20,9 +19,6 @@ from scp.adapters.cursor_hook import (
 )
 from scp.models import (
     Constraints,
-    EvidenceDetectionRule,
-    EvidenceItem,
-    EvidenceRequirements,
     PlanStep,
     SkillContract,
 )
@@ -113,82 +109,6 @@ class TestStatePersistence:
         with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
             state = load_state()
             assert state.active_skill_path is None
-
-
-class TestEvidenceDetection:
-    def test_tool_pattern_only(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                evidence=EvidenceRequirements(
-                    required=[EvidenceItem(id="thread_read", description="Thread read")],
-                    detection=[
-                        EvidenceDetectionRule(
-                            evidence_id="thread_read",
-                            tool_pattern=r"^slack_get_thread$",
-                        )
-                    ],
-                )
-            )
-        )
-        satisfied = _check_evidence_detection(contract, "slack_get_thread", "any result")
-        assert "thread_read" in satisfied
-
-    def test_tool_pattern_no_match(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                evidence=EvidenceRequirements(
-                    required=[EvidenceItem(id="thread_read", description="Thread read")],
-                    detection=[
-                        EvidenceDetectionRule(
-                            evidence_id="thread_read",
-                            tool_pattern=r"^slack_get_thread$",
-                        )
-                    ],
-                )
-            )
-        )
-        satisfied = _check_evidence_detection(contract, "other_tool", "any result")
-        assert satisfied == []
-
-    def test_tool_and_result_pattern(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                evidence=EvidenceRequirements(
-                    required=[EvidenceItem(id="alert_classified", description="Alert classified")],
-                    detection=[
-                        EvidenceDetectionRule(
-                            evidence_id="alert_classified",
-                            tool_pattern=r"^slack_get_thread$",
-                            result_pattern=r"ecp-traffic",
-                        )
-                    ],
-                )
-            )
-        )
-        satisfied = _check_evidence_detection(
-            contract, "slack_get_thread", '{"text": "ecp-traffic alert fired"}'
-        )
-        assert "alert_classified" in satisfied
-
-    def test_result_pattern_no_match(self) -> None:
-        contract = _make_contract(
-            constraints=Constraints(
-                evidence=EvidenceRequirements(
-                    required=[EvidenceItem(id="alert_classified", description="Alert classified")],
-                    detection=[
-                        EvidenceDetectionRule(
-                            evidence_id="alert_classified",
-                            tool_pattern=r"^slack_get_thread$",
-                            result_pattern=r"ecp-traffic",
-                        )
-                    ],
-                )
-            )
-        )
-        satisfied = _check_evidence_detection(
-            contract, "slack_get_thread", '{"text": "unrelated message"}'
-        )
-        assert satisfied == []
 
 
 class TestStepOrder:

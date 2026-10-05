@@ -107,7 +107,7 @@ planner = PlanExecutor(contract)
 # In your agent loop:
 for step in planner:
     result = your_tool_runner(step.tool, step.args)
-    tracker.record(result)
+    tracker.record_many(tracker.detect(step.tool, str(result)))
     if enforcer.can_finalize(tracker):
         break
 ```

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Any
 
@@ -56,6 +57,16 @@ class EvidenceDetectionRule(BaseModel):
         default=None,
         description="Optional regex searched against the tool result. If omitted, tool match alone suffices.",
     )
+
+    @field_validator("tool_pattern", "result_pattern")
+    @classmethod
+    def valid_regex(cls, pattern: str | None) -> str | None:
+        if pattern is not None:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"Invalid regular expression: {exc}") from exc
+        return pattern
 
 
 class EvidenceRequirements(BaseModel):
