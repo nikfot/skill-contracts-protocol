@@ -149,6 +149,16 @@ class InputSpec(BaseModel):
     required: bool = True
     pattern: str | None = Field(default=None, description="Python regex the whole value must match.")
 
+    @field_validator("pattern")
+    @classmethod
+    def valid_regex(cls, pattern: str | None) -> str | None:
+        if pattern is not None:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"Invalid regular expression: {exc}") from exc
+        return pattern
+
 
 class SkillContract(BaseModel):
     """A fully parsed SCP v1.0 skill contract.

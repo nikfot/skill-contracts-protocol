@@ -41,6 +41,10 @@ class TestModel:
         with pytest.raises(ValidationError):
             InputSpec(name=name, description="x")
 
+    def test_input_pattern_must_be_valid_regex(self) -> None:
+        with pytest.raises(ValidationError, match="Invalid regular expression"):
+            InputSpec(name="host_id", description="Host.", pattern="i-(")
+
     def test_loads_from_frontmatter(self) -> None:
         contract = load_skill_from_string(
             "---\nscp: '1.0'\nname: t\ndescription: T\n"
@@ -120,7 +124,8 @@ class TestValidator:
         assert validate_contract(_contract(inputs)) == ["Duplicate input name: 'host_id'"]
 
     def test_invalid_pattern(self) -> None:
-        errors = validate_contract(_contract([InputSpec(name="host_id", description="H.", pattern="i-(")]))
+        invalid_input = InputSpec.model_construct(name="host_id", description="H.", pattern="i-(")
+        errors = validate_contract(_contract([invalid_input]))
 
         assert len(errors) == 1
         assert errors[0].startswith("inputs['host_id'].pattern is not a valid regex")
