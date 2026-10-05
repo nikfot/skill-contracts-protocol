@@ -1,0 +1,44 @@
+---
+scp: "1.0"
+name: summarize-alert-thread
+description: Summarize an alert thread only after the thread and its classification are collected.
+activation:
+  slash_command: /summarize-alert
+constraints:
+  enforcement: strict
+  tool_ids:
+    - slack_get_thread
+    - classify_alert
+    - slack_post_message
+  plan:
+    - tool: slack_get_thread
+      description: Read the alert thread
+    - tool: classify_alert
+      description: Classify the alert from the thread content
+      requires_evidence:
+        - thread_content
+    - tool: slack_post_message
+      description: Post the summary back to the thread
+      requires_evidence:
+        - thread_content
+        - alert_classification
+  evidence:
+    required:
+      - id: thread_content
+        description: The alert thread was read.
+      - id: alert_classification
+        description: The alert has a classification.
+    detection:
+      - evidence_id: thread_content
+        tool_pattern: "^slack_get_thread$"
+        result_pattern: '"messages":\s*\['
+      - evidence_id: alert_classification
+        tool_pattern: "^classify_alert$"
+  finalization:
+    require_all_evidence: true
+---
+
+# Summarize Alert Thread
+
+Demonstrates evidence-gated plan steps: the summary cannot be posted until
+detection rules have recorded both the thread content and the classification.

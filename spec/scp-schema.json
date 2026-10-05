@@ -26,10 +26,22 @@
       "$ref": "#/$defs/Activation",
       "description": "Exclusive invocation routes. When absent the skill is always discoverable."
     },
+    "delegates_to": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Child skill names this skill may delegate to."
+    },
     "constraints": {
       "type": "object",
       "description": "The enforcement contract.",
       "properties": {
+        "enforcement": {
+          "type": "string",
+          "enum": ["strict", "soft", "off"],
+          "default": "strict",
+          "description": "How violations are handled: strict (reject), soft (warn and approve), off (pass-through)."
+        },
         "tool_ids": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
@@ -50,6 +62,11 @@
               "items": { "$ref": "#/$defs/EvidenceItem" },
               "minItems": 1,
               "description": "Evidence the agent must collect before finalization."
+            },
+            "detection": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/EvidenceDetectionRule" },
+              "description": "Regex rules that mark evidence as collected from tool outputs."
             }
           },
           "additionalProperties": false
@@ -132,6 +149,17 @@
         "args_template": {
           "type": "object",
           "description": "Pre-filled arguments with optional {{variable}} placeholders."
+        },
+        "delegates": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Child skill to delegate to at this step. Must be listed in delegates_to."
+        },
+        "requires_evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Evidence IDs that must be collected before this step's tool is allowed."
         }
       },
       "additionalProperties": false
@@ -150,6 +178,27 @@
           "type": "string",
           "minLength": 1,
           "description": "What constitutes this evidence."
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceDetectionRule": {
+      "type": "object",
+      "required": ["evidence_id", "tool_pattern"],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID of the required evidence item this rule satisfies."
+        },
+        "tool_pattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Regex matched against the tool name."
+        },
+        "result_pattern": {
+          "type": "string",
+          "description": "Optional regex searched against the stringified tool result."
         }
       },
       "additionalProperties": false
