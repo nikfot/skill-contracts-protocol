@@ -60,6 +60,29 @@ class TestCLIValidate:
             assert result.exit_code == 1
             assert "tool_b" in result.output
 
+    def test_each_reference_error_is_reported(self) -> None:
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            Path("refs.yaml").write_text(
+                "---\n"
+                "scp: '1.0'\n"
+                "name: refs\n"
+                "description: Refs\n"
+                "constraints:\n"
+                "  plan:\n"
+                "    - tool: a\n"
+                "      description: A\n"
+                "      requires_evidence: [typo]\n"
+                "      delegates: child\n"
+                "---\n"
+            )
+            result = runner.invoke(main, ["validate", "refs.yaml"])
+
+        assert result.exit_code == 1
+        assert "  - plan[0].requires_evidence 'typo' is not a declared evidence ID" in result.output
+        assert "  - plan[0].delegates 'child' is not in delegates_to" in result.output
+        assert "2 error(s)" in result.output
+
     def test_version_flag(self) -> None:
         runner = CliRunner()
         result = runner.invoke(main, ["--version"])

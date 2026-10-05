@@ -2,7 +2,13 @@
 
 __version__ = "0.1.0"
 
-from .loader import load_skill, load_skill_from_dict, load_skill_from_json, load_skill_from_string
+from .loader import (
+    ContractValidationError,
+    load_skill,
+    load_skill_from_dict,
+    load_skill_from_json,
+    load_skill_from_string,
+)
 from .models import (
     Activation,
     Constraints,
@@ -18,6 +24,7 @@ from .models import (
 __all__ = [
     "Activation",
     "Constraints",
+    "ContractValidationError",
     "EnforcementMode",
     "EvidenceDetectionRule",
     "EvidenceItem",

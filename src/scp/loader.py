@@ -9,6 +9,22 @@ from typing import Any
 import frontmatter
 
 from .models import SkillContract
+from .validator import validate_contract
+
+
+class ContractValidationError(ValueError):
+    """A contract parsed but failed ``validate_contract``; ``errors`` lists each problem."""
+
+    def __init__(self, errors: list[str]) -> None:
+        super().__init__("; ".join(errors))
+        self.errors = errors
+
+
+def _validated(contract: SkillContract) -> SkillContract:
+    errors = validate_contract(contract)
+    if errors:
+        raise ContractValidationError(errors)
+    return contract
 
 
 def load_skill(path: str | Path) -> SkillContract:
@@ -20,7 +36,7 @@ def load_skill(path: str | Path) -> SkillContract:
     - JSON files (must contain an ``scp`` key)
 
     Raises ``ValueError`` if the file lacks an ``scp`` key or
-    fails validation.
+    fails validation (``ContractValidationError`` for referential errors).
     """
     path = Path(path)
     text = path.read_text(encoding="utf-8")
@@ -44,7 +60,7 @@ def load_skill_from_string(text: str) -> SkillContract:
 
     body = str(post.content).strip()
     metadata["content"] = body
-    return SkillContract.model_validate(metadata)
+    return _validated(SkillContract.model_validate(metadata))
 
 
 def load_skill_from_json(text: str) -> SkillContract:
@@ -67,4 +83,4 @@ def load_skill_from_dict(data: dict[str, Any], content: str = "") -> SkillContra
         raise ValueError("Missing 'scp' key -- not an SCP contract.")
 
     merged = {**data, "content": content}
-    return SkillContract.model_validate(merged)
+    return _validated(SkillContract.model_validate(merged))

@@ -11,9 +11,8 @@ import frontmatter
 import yaml
 
 from .elastic_compat import validate_elastic_compatibility
-from .loader import load_skill, load_skill_from_string
+from .loader import ContractValidationError, load_skill, load_skill_from_string
 from .schema import validate_against_schema
-from .validator import validate_contract
 
 
 @click.group()
@@ -63,9 +62,9 @@ def validate(paths: tuple[str, ...]) -> None:
 
         if not schema_errors:
             try:
-                contract = load_skill(path)
-                ref_errors = validate_contract(contract)
-                file_errors.extend(ref_errors)
+                load_skill(path)
+            except ContractValidationError as exc:
+                file_errors.extend(exc.errors)
             except Exception as exc:
                 file_errors.append(f"Parse error: {exc}")
 

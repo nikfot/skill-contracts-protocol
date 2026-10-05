@@ -1,5 +1,7 @@
 """Tests for scp.runtime.enforcer."""
 
+import pytest
+
 from scp.models import (
     Constraints,
     EnforcementMode,
@@ -56,6 +58,55 @@ class TestCheckToolCall:
         enforcer = SkillEnforcer(contract)
         result = enforcer.check_tool_call("anything", {})
         assert not result.blocked
+
+
+def _alias_contract() -> SkillContract:
+    return _make_contract(
+        constraints=Constraints(
+            tool_ids=["post", "run_query"],
+            tool_overrides={"search": "run_query"},
+            plan=[
+                PlanStep(tool="post", description="Post"),
+                PlanStep(tool="run_query", description="Query", requires_evidence=["posted"]),
+            ],
+            evidence=EvidenceRequirements(required=[EvidenceItem(id="posted", description="Posted")]),
+        )
+    )
+
+
+class TestAliasEnforcement:
+    def test_alias_is_held_to_its_target_step_order(self) -> None:
+        contract = _alias_contract()
+        enforcer = SkillEnforcer(contract)
+
+        decision = enforcer.evaluate("search", {}, EvidenceTracker(contract))
+
+        assert decision.action == "block"
+        assert "before step 2 (run_query)" in (decision.reason or "")
+
+    def test_alias_is_held_to_its_target_evidence_gate(self) -> None:
+        contract = _alias_contract()
+        enforcer = SkillEnforcer(contract)
+        enforcer.restore_progress(current_step_index=1, completed_steps=[0])
+
+        decision = enforcer.evaluate("search", {}, EvidenceTracker(contract))
+
+        assert decision.action == "block"
+        assert "requires evidence: posted" in (decision.reason or "")
+
+    def test_alias_advances_its_target_step(self) -> None:
+        enforcer = SkillEnforcer(_alias_contract())
+        enforcer.restore_progress(current_step_index=1, completed_steps=[0])
+
+        assert enforcer.advance("search") == 1
+
+
+class TestDelegation:
+    def test_delegation_requires_delegates_to(self) -> None:
+        enforcer = SkillEnforcer(_make_contract())
+
+        with pytest.raises(ValueError, match="does not declare"):
+            enforcer.push_delegation(_make_contract(name="child"))
 
 
 class TestCanFinalize:

@@ -201,7 +201,7 @@ class TestEnforcementModes:
             "name: test-skill\n"
             "description: Test\n"
             "constraints:\n"
-            "  enforcement: off\n"
+            '  enforcement: "off"\n'
             "  tool_ids:\n"
             "    - allowed_tool\n"
             "---\nBody\n",
@@ -432,3 +432,120 @@ class TestHandleSessionStart:
             assert result["decision"] == "approve"
             state = load_state()
             assert state.active_skill_path is None
+
+
+def _activate(tmp_path: Path, frontmatter_yaml: str) -> Path:
+    """Write an active SKILL.md with extra frontmatter and return the session state file."""
+    skill_file = tmp_path / "SKILL.md"
+    skill_file.write_text(
+        f'---\nscp: "1.0"\nname: test-skill\ndescription: Test\n{frontmatter_yaml}---\nBody\n', encoding="utf-8"
+    )
+    state_file = tmp_path / "state.json"
+    state_file.write_text(json.dumps(SessionState(active_skill_path=str(skill_file)).to_dict()), encoding="utf-8")
+    return state_file
+
+
+_INVALID = "constraints:\n  plan:\n    - tool: a\n      description: A\n      requires_evidence: [typo]\n"
+
+
+class TestInvalidActiveContract:
+    @pytest.mark.parametrize(
+        ("mode", "decision"), [("", "reject"), ("strict", "reject"), ("soft", "approve"), ("off", "approve")]
+    )
+    def test_env_mode_decides(self, tmp_path: Path, mode: str, decision: str) -> None:
+        state_file = _activate(tmp_path, _INVALID)
+
+        with (
+            patch("scp.adapters.cursor_hook._state_path", return_value=state_file),
+            patch.dict(os.environ, {"SCP_MODE": mode}),
+        ):
+            result = handle_pre_tool_use({"toolName": "a", "toolArgs": {}})
+
+        assert result["decision"] == decision
+        if decision == "reject":
+            assert "typo" in result["reason"]
+
+    def test_missing_contract_file_rejects(self, tmp_path: Path) -> None:
+        state_file = tmp_path / "state.json"
+        state = SessionState(active_skill_path=str(tmp_path / "gone" / "SKILL.md"))
+        state_file.write_text(json.dumps(state.to_dict()), encoding="utf-8")
+
+        with (
+            patch("scp.adapters.cursor_hook._state_path", return_value=state_file),
+            patch.dict(os.environ, {"SCP_MODE": ""}),
+        ):
+            assert handle_pre_tool_use({"toolName": "a", "toolArgs": {}})["decision"] == "reject"
+
+    def test_post_tool_use_records_nothing(self, tmp_path: Path) -> None:
+        state_file = _activate(tmp_path, _INVALID)
+
+        with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
+            assert handle_post_tool_use({"toolName": "a", "toolResult": ""}) == {"decision": "approve"}
+            assert load_state().collected_evidence == []
+
+
+_DELEGATING = (
+    "delegates_to: [child-skill]\n"
+    "constraints:\n  plan:\n"
+    "    - tool: step_a\n      description: A\n      delegates: child-skill\n"
+    "    - tool: step_b\n      description: B\n"
+)
+
+
+class TestDelegateResolution:
+    def test_missing_delegate_rejects_in_strict(self, tmp_path: Path) -> None:
+        state_file = _activate(tmp_path, _DELEGATING)
+
+        with (
+            patch("scp.adapters.cursor_hook._state_path", return_value=state_file),
+            patch.dict(os.environ, {"SCP_MODE": "", "SCP_SKILL_DIRS": ""}),
+        ):
+            result = handle_pre_tool_use({"toolName": "step_a", "toolArgs": {}})
+
+            assert result["decision"] == "reject"
+            assert "child-skill" in result["reason"]
+            assert load_state().current_step_index == 0
+
+    def test_found_delegate_is_pushed(self, tmp_path: Path) -> None:
+        state_file = _activate(tmp_path, _DELEGATING)
+        skills = tmp_path / "skills"
+        child = _write_skill(skills, "child-skill")
+
+        with (
+            patch("scp.adapters.cursor_hook._state_path", return_value=state_file),
+            patch.dict(os.environ, {"SCP_MODE": "", "SCP_SKILL_DIRS": str(skills)}),
+        ):
+            result = handle_pre_tool_use({"toolName": "step_a", "toolArgs": {}})
+            assert result["decision"] == "approve"
+            assert load_state().delegation_stack == []
+
+            handle_post_tool_use({"toolName": "step_a", "toolResult": "ok"})
+
+            state = load_state()
+            assert state.delegation_stack == [str(child)]
+            assert state.current_step_index == 1
+
+
+_ALIASED = (
+    "constraints:\n  tool_ids: [fetch_data]\n  tool_overrides:\n    search: fetch_data\n"
+    "  plan:\n    - tool: fetch_data\n      description: Fetch\n"
+    "  evidence:\n    required:\n      - id: fetched\n        description: Fetched\n"
+    "    detection:\n      - evidence_id: fetched\n        tool_pattern: ^fetch_data$\n"
+)
+
+
+class TestAliases:
+    def test_alias_advances_the_plan(self, tmp_path: Path) -> None:
+        state_file = _activate(tmp_path, _ALIASED)
+
+        with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
+            assert handle_pre_tool_use({"toolName": "search", "toolArgs": {}})["decision"] == "approve"
+            handle_post_tool_use({"toolName": "search", "toolResult": "rows"})
+            assert load_state().current_step_index == 1
+
+    def test_alias_result_is_detected_as_its_target(self, tmp_path: Path) -> None:
+        state_file = _activate(tmp_path, _ALIASED)
+
+        with patch("scp.adapters.cursor_hook._state_path", return_value=state_file):
+            handle_post_tool_use({"toolName": "search", "toolResult": "rows"})
+            assert load_state().collected_evidence == ["fetched"]

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import re
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
+
+# Same placeholder syntax as scp.runtime.planner.
+_PLACEHOLDER_RE = re.compile(r"\{\{(\w+)\}\}")
 
 
 class EnforcementMode(str, Enum):  # noqa: UP042 -- StrEnum would change str() output for existing callers
@@ -134,6 +138,28 @@ class Activation(BaseModel):
     )
 
 
+class InputSpec(BaseModel):
+    """A value the host supplies for ``{{name}}`` placeholders in plan ``args_template``.
+
+    SCP does not say where the value comes from (a form, a CLI flag, an LLM extraction).
+    """
+
+    name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    description: str = Field(min_length=1)
+    required: bool = True
+    pattern: str | None = Field(default=None, description="Python regex the whole value must match.")
+
+    @field_validator("pattern")
+    @classmethod
+    def valid_regex(cls, pattern: str | None) -> str | None:
+        if pattern is not None:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"Invalid regular expression: {exc}") from exc
+        return pattern
+
+
 class SkillContract(BaseModel):
     """A fully parsed SCP v1.0 skill contract.
 
@@ -150,6 +176,10 @@ class SkillContract(BaseModel):
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     activation: Activation | None = None
+    inputs: list[InputSpec] | None = Field(
+        default=None,
+        description="Values the host supplies for plan placeholders. When absent, every placeholder is an input.",
+    )
     constraints: Constraints | None = None
     delegates_to: list[str] | None = Field(
         default=None,
@@ -159,6 +189,17 @@ class SkillContract(BaseModel):
         ),
     )
     content: str = Field(default="", description="Markdown body after frontmatter.")
+
+    @property
+    def placeholders(self) -> list[str]:
+        """Names of the ``{{name}}`` placeholders used in plan ``args_template`` values, sorted."""
+        return sorted(
+            {
+                name
+                for step in self.plan_steps
+                for name in _PLACEHOLDER_RE.findall(json.dumps(step.args_template or {}))
+            }
+        )
 
     @property
     def enforcement_mode(self) -> EnforcementMode:
@@ -241,5 +282,4 @@ class SkillContract(BaseModel):
         tools = self.tool_ids
         if tools is None:
             return True
-        resolved = self.resolve_tool(name)
-        return resolved in tools or name in tools
+        return self.resolve_tool(name) in tools

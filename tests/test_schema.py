@@ -16,6 +16,7 @@ from scp.models import (
     EvidenceItem,
     EvidenceRequirements,
     FinalizationRules,
+    InputSpec,
     PlanStep,
     ReferencedContent,
     SkillContract,
@@ -43,6 +44,7 @@ def _schema_nodes() -> dict[type[BaseModel], dict[str, Any]]:
         EvidenceItem: defs["EvidenceItem"],
         EvidenceDetectionRule: defs["EvidenceDetectionRule"],
         FinalizationRules: constraints["properties"]["finalization"],
+        InputSpec: defs["InputSpec"],
         ReferencedContent: defs["ReferencedContent"],
     }
 
